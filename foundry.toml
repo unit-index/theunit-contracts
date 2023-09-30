@@ -13,7 +13,7 @@
   optimizer_runs = 10_000
   out = "out"
   script = "script"
-  solc = "0.8.21"
+  solc = "/opt/homebrew/bin/solc"
   src = "src"
   test = "test"
 
@@ -23,12 +23,12 @@
 
 [etherscan]
   arbitrum_one = { key = "${API_KEY_ARBISCAN}" }
-  avalanche = { key = "${API_KEY_SNOWTRACE}" }
+  arbitrum_goerli = { key = "${API_KEY_ARBISCAN}" }
   bnb_smart_chain = { key = "${API_KEY_BSCSCAN}" }
-  gnosis_chain = { key = "${API_KEY_GNOSISSCAN}" }
   goerli = { key = "${API_KEY_ETHERSCAN}" }
   mainnet = { key = "${API_KEY_ETHERSCAN}" }
   optimism = { key = "${API_KEY_OPTIMISTIC_ETHERSCAN}" }
+  optimism_goerli = { key = "${API_KEY_OPTIMISTIC_ETHERSCAN}" }
   polygon = { key = "${API_KEY_POLYGONSCAN}" }
   sepolia = { key = "${API_KEY_ETHERSCAN}" }
 
@@ -44,6 +44,7 @@
 
 [rpc_endpoints]
   arbitrum_one = "https://arbitrum-mainnet.infura.io/v3/${API_KEY_INFURA}"
+  arbitrum_goerli = "https://arbitrum-goerli.infura.io/v3/${API_KEY_INFURA}"
   avalanche = "https://avalanche-mainnet.infura.io/v3/${API_KEY_INFURA}"
   bnb_smart_chain = "https://bsc-dataseed.binance.org"
   gnosis_chain = "https://rpc.gnosischain.com"
@@ -51,5 +52,6 @@
   localhost = "http://localhost:8545"
   mainnet = "https://eth-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
   optimism = "https://optimism-mainnet.infura.io/v3/${API_KEY_INFURA}"
+  optimism_goerli = "https://optimism-goerli.infura.io/v3/${API_KEY_INFURA}"
   polygon = "https://polygon-mainnet.infura.io/v3/${API_KEY_INFURA}"
   sepolia = "https://sepolia.infura.io/v3/${API_KEY_INFURA}"
