@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.21;
 
-import '../interfaces/IPriceFeed.sol';
+import { IPriceFeed } from "../interfaces/IPriceFeed.sol";
 
 // import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 

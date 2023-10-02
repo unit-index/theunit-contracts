@@ -2,14 +2,12 @@
 
 pragma solidity ^0.8.21;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
-import "../interfaces/IWETH.sol";
-import "../interfaces/IFarm.sol";
-
-import "hardhat/console.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IUniswapV2Router01 } from "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol";
+import { IWETH } from "../interfaces/IWETH.sol";
+import { IFarm } from "../interfaces/IFarm.sol";
 
 contract FarmRouter is Ownable {
     using SafeMath for uint256;

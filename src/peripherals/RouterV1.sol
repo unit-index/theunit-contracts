@@ -1,10 +1,9 @@
-// SPDX-License-Identifier: MIT
-
+// SPDX-License-Identifier: MIT\
 pragma solidity ^0.8.21;
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import '../interfaces/IVault.sol';
-import "../interfaces/IWETH.sol";
-// import "hardhat/console.sol";
+
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IVault } from "../interfaces/IVault.sol";
+import { IWETH } from "../interfaces/IWETH.sol";
 
 contract RouterV1 {
     
@@ -47,7 +46,7 @@ contract RouterV1 {
     }
  
     function increaseCollateral(address _collateralToken, uint256 _tokenAmount, address _receiver) external returns(bool) {  
-        require(IERC20(_collateralToken).balanceOf(msg.sender) >= _tokenAmount, "UintRouter: insufficient tokenAmount");
+        require(IERC20(_collateralToken).balanceOf(msg.sender) >= _tokenAmount, "UintRouter: not enough balance");
         IERC20(_collateralToken).transferFrom(msg.sender, VAULT, _tokenAmount);
         IVault(VAULT).increaseCollateral(_collateralToken, _receiver);
         emit IncreaseCollateral(_receiver, _collateralToken, _tokenAmount);
@@ -194,13 +193,13 @@ contract RouterV1 {
 
     function safeTransferETH(address to, uint256 value) internal {
         (bool success, ) = to.call{value: value}(new bytes(0));
-        require(success, 'UintRouter::safeTransferETH: ETH transfer failed');
+        require(success, "UintRouter: ETH transfer failed");
     }
 
     function liquidation(address _collateralToken, address _account, address _feeTo) external returns (bool) {
         (, uint256 _debt) = IVault(VAULT).vaultOwnerAccount(_account, _collateralToken);
         uint256 _balance = IERC20(TINU).balanceOf(msg.sender);
-        require(_balance >= _debt, "UintRouter: insufficient TINU token");
+        require(_balance >= _debt, "UintRouter: not enough TINU");
         IERC20(TINU).transferFrom(msg.sender, VAULT, _debt);
         IVault(VAULT).liquidation(_collateralToken, _account, _feeTo);
         return true;

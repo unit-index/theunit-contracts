@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.21;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import '../interfaces/IPriceFeed.sol';
-import '../interfaces/IVaultPriceFeed.sol';
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { IPriceFeed } from "../interfaces/IPriceFeed.sol";
+import { IVaultPriceFeed } from "../interfaces/IVaultPriceFeed.sol";
 
 contract VaultPriceFeed is IVaultPriceFeed {
     using SafeMath for uint256;
@@ -42,7 +42,7 @@ contract VaultPriceFeed is IVaultPriceFeed {
     // 把价格统一转成了30位
     function getPrice(address _token) public override view returns (uint256) {
         address priceFeedAddress = priceFeeds[_token];
-        require(priceFeedAddress != address(0), "VaultPriceFeed: invalid price feed");
+        require(priceFeedAddress != address(0), "Invalid price feed");
         IPriceFeed priceFeed = IPriceFeed(priceFeedAddress);
         int256 price = priceFeed.latestAnswer();
         // uint256 _priceDecimals = priceDecimals[_token];

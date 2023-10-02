@@ -2,14 +2,10 @@
 
 pragma solidity ^0.8.21;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "../interfaces/ITinuToken.sol";
-import '../interfaces/ICollateralManager.sol';
-
-// import "hardhat/console.sol";
-
-// Everyone can mint, as long as there is enough collateral.
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { ITinuToken } from "../interfaces/ITinuToken.sol";
+import { ICollateralManager } from "../interfaces/ICollateralManager.sol";
 
 contract TinuToken is ERC20, ITinuToken {
 

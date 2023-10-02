@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.21;
-import '../interfaces/IVault.sol';
-import "../interfaces/ITinuToken.sol";
-import '../interfaces/ICollateralManager.sol';
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import '../interfaces/IVaultPriceFeed.sol';
+import { IVault } from "../interfaces/IVault.sol";
+import { ITinuToken } from "../interfaces/ITinuToken.sol";
+import { ICollateralManager } from "../interfaces/ICollateralManager.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { IVaultPriceFeed } from "../interfaces/IVaultPriceFeed.sol";
 
 // import "hardhat/console.sol";
 
@@ -173,13 +173,13 @@ contract Vault is IVault {
         uint256 _collateralAmount
     ) internal returns (bool){
         uint256 _tokenAssets = vaultOwnerAccount[_from][_collateralToken].tokenAssets;
-        require(_collateralAmount <= _tokenAssets, "Vault: insufficient collateral balance!");
+        require(_collateralAmount <= _tokenAssets, "Vault: not enough collateral");
 
         vaultOwnerAccount[_from][_collateralToken].tokenAssets =  vaultOwnerAccount[_from][_collateralToken].tokenAssets.sub(_collateralAmount);
         vaultPoolAccount[_collateralToken].tokenAssets =  vaultPoolAccount[_collateralToken].tokenAssets.sub(_collateralAmount);
      
         bool yes = validateLiquidation(_from, _collateralToken, true); 
-        require(!yes, "Vault: collateral amount out of range");
+        require(!yes, "Collateral amount out of range");
 
         IERC20(_collateralToken).transfer(_receiver, _collateralAmount);
         emit DecreaseCollateral(
@@ -257,15 +257,16 @@ contract Vault is IVault {
         require(_balance >= account.tinuDebt, "Vault: insufficient unit token");
         ITinuToken(tinu).burn(account.tinuDebt);
 
-        uint256 _treasuryFee =  account.tokenAssets.mul(1000).sub(account.tokenAssets.mul(liquidationTreasuryFee)).div(1000); // 1%, liquidationTreasuryFee default 990
+        // 1%, liquidationTreasuryFee default 990
+        uint256 _treasuryFee =  account.tokenAssets.mul(1000).sub(account.tokenAssets.mul(liquidationTreasuryFee)).div(1000);
         uint256 _returnCollateral = account.tokenAssets.sub(_treasuryFee);
+        account.tinuDebt = 0;
+        account.tokenAssets = 0;
 
         IERC20(_collateralToken).transfer(treasury, _treasuryFee);
         IERC20(_collateralToken).transfer(_feeTo, _returnCollateral);
 
         emit LiquidateCollateral(_account, _collateralToken, account.tokenAssets, account.tinuDebt, _feeTo);
-        account.tinuDebt = 0;
-        account.tokenAssets = 0;
 
         return true;
     }

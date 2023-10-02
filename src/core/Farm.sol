@@ -2,13 +2,9 @@
 
 pragma solidity ^0.8.21;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-// import "../interfaces/ITicketToken.sol";
-// import "../interfaces/ITokenFactory.sol";
-
-import "hardhat/console.sol";
+import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Farm is Ownable {
 
@@ -140,7 +136,7 @@ contract Farm is Ownable {
 
     // lock LP
     function depositAndLock(uint256 _pid, uint256 _multiplierIndex, uint256 _amount, address _to) public { 
-        require(_amount > 0, 'Farm: amount cannot be 0');
+        require(_amount > 0, "Farm: amount cannot be 0");
         require( _multiplierIndex < 4, "Farm: _multiplierIndex < 4");
 
         updatePool(_pid);
@@ -167,10 +163,10 @@ contract Farm is Ownable {
     }
 
     function withdraw( uint256 _lockIndex, uint256 _amount) public {
-        require(_amount > 0, 'Farms: amount cannot be 0');
+        require(_amount > 0, "Farms: amount cannot be 0");
         UserLockInfo storage userLockInfo = userLock[msg.sender][_lockIndex];
-        require(block.timestamp > userLockInfo.unLockTime, 'Farm: Not expired');
-        require(userLockInfo.amount > 0, 'Farm: Not amount');
+        require(block.timestamp > userLockInfo.unLockTime, "Farm: Not expired");
+        require(userLockInfo.amount > 0, "Farm: Not amount");
        
         updatePool(userLockInfo.pid);
 
@@ -190,6 +186,10 @@ contract Farm is Ownable {
 
         if (userLockInfo.amount > 0) {
             uint256 pending = userLockInfo.amount.mul(userLockInfo.multiplier).mul(_accCakePerShare).div(1e12).sub(userLockInfo.rewardDebt);
+
+            // Update user's reward debt before making any external calls
+            userLockInfo.rewardDebt = userLockInfo.amount.mul(userLockInfo.multiplier).mul(_accCakePerShare).div(1e12);
+
             if(pending > 0) {
                 IERC20(un).transfer(_to, pending);
             }
@@ -202,7 +202,6 @@ contract Farm is Ownable {
                 _to
             );
         }
-        userLockInfo.rewardDebt = userLockInfo.amount.mul(userLockInfo.multiplier).mul(_accCakePerShare).div(1e12);
 
     }
 
@@ -222,7 +221,6 @@ contract Farm is Ownable {
         uint256 totalPending;
         uint256 unLockPending;
         uint256 accCakePerShare = pool.accCakePerShare;
-        //   console.log("pendingRewards, accCakePerShare:", accCakePerShare);
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 time = getTime(pool.lastRewardBlock, block.number);
             uint256 cakeReward = time.mul(cakePerBlock).mul(pool.allocPoint).div(totalAllocPoint);
@@ -230,7 +228,6 @@ contract Farm is Ownable {
             accCakePerShare = accCakePerShare.add(cakeReward.mul(1e12).div(lpSupply));
         }
         
-        // console.log("pendingRewards:", accCakePerShare, userLockInfo.rewardDebt, cakeReward);
         totalPending = userLockInfo.amount.mul(userLockInfo.multiplier).mul(accCakePerShare).div(1e12).sub(userLockInfo.rewardDebt);
 
         if(accCakePerShareArchive.length > 0) {
