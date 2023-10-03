@@ -45,13 +45,13 @@ contract FarmTest is BaseSetup {
             address(UN)
         );
 
-        address pair0 = UNISWAP_FACTORY.createPair(WETH, address(tinu));
+        address pair0 = UNISWAP_FACTORY.createPair(address(WETH), address(tinu));
         address pair1 = UNISWAP_FACTORY.createPair(address(UN), address(tinu));
 
         router = new FarmRouter(
             address(tinu),
             address(UN),
-            WETH,
+            address(WETH),
             address(UNISWAP_ROUTER),
             address(farm),
             address(pair0),
@@ -64,7 +64,7 @@ contract FarmTest is BaseSetup {
     // function test_DepositETH() external {
     //     vm.startPrank(user);
 
-        // uint256 ethPrice = vaultPriceFeed.getPrice(WETH);
+        // uint256 ethPrice = vaultPriceFeed.getPrice(address(WETH));
         // assertEq(ethPrice, price);
         // uint256 ethAmount = 0.1 * 1e18;
         // uint256 tinuVaultAmount = (ethAmount * 4 * price).div(liquidationRatio + recommendRatio).mul(100);
