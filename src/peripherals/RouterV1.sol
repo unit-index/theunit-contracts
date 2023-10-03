@@ -34,7 +34,6 @@ contract RouterV1 {
         uint256 amount
     );
     
-    // sepolia WETH 0x632AbC44b7C31B814DA1808325294572C3C1ef2a
     constructor (address _vault, address _weth, address _tinu) {
         VAULT = _vault;
         WETH = _weth;
@@ -46,7 +45,7 @@ contract RouterV1 {
     }
  
     function increaseCollateral(address _collateralToken, uint256 _tokenAmount, address _receiver) external returns(bool) {  
-        require(IERC20(_collateralToken).balanceOf(msg.sender) >= _tokenAmount, "UintRouter: not enough balance");
+        require(IERC20(_collateralToken).balanceOf(msg.sender) >= _tokenAmount, "Router: not enough balance");
         IERC20(_collateralToken).transferFrom(msg.sender, VAULT, _tokenAmount);
         IVault(VAULT).increaseCollateral(_collateralToken, _receiver);
         emit IncreaseCollateral(_receiver, _collateralToken, _tokenAmount);
@@ -54,7 +53,7 @@ contract RouterV1 {
     }
 
     function increaseETH(address _receiver) external payable returns(bool) {  
-        require(msg.value > 0, "UintRouter: amount cannot be 0");
+        require(msg.value > 0, "Router: value cannot be 0");
         IWETH(WETH).deposit{value: msg.value}();
         IWETH(WETH).transfer(VAULT, msg.value);
         IVault(VAULT).increaseCollateral(WETH, _receiver);

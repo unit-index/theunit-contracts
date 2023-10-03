@@ -16,6 +16,7 @@ contract BaseSetup is PRBTest, StdCheats {
     address internal WETH = 0xe39Ab88f8A4777030A534146A9Ca3B52bd5D43A3;
     uint256 internal recommendRatio = 200;
     uint256 internal price = 1100;
+    uint256 internal liquidationRatio;
 
     TinuToken public tinu;
     Vault public vault;
@@ -34,6 +35,7 @@ contract BaseSetup is PRBTest, StdCheats {
         vault.setPriceFeed(address(vaultPriceFeed));
         tinu.setMinter(address(vault));
         vaultPriceFeed.setTokenConfig(WETH, address(priceFeed), 18);
+        liquidationRatio = vault.liquidationRatio();
         vm.stopPrank();
     }
 }

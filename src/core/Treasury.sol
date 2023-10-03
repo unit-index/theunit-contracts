@@ -15,7 +15,5 @@ contract Treasury is ITreasury {
     function setGov(address _gov) public {
         gov = _gov;
     }
-    function withdraw(address _token, uint256 _value, address _account) public {
-        
-    }
+
 }
