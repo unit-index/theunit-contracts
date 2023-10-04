@@ -275,7 +275,7 @@ contract Vault is IVault {
         uint256 _tokenTinuAmount = tokenToTinu(_price, account.tokenAssets);
 
         if(_checkCollateral && account.tinuDebt > 0) {
-            require(_tokenTinuAmount >=  minimumCollateral, "Vault: minimumCollateral");
+            require(_tokenTinuAmount >=  minimumCollateral, "Vault: minimumTINU");
         }
 
         if(_tokenTinuAmount.mul(1000) >= account.tinuDebt.mul(liquidationRatio)) { // liquidationRatio = 1150.  115.0  

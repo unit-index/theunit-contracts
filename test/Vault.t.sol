@@ -46,7 +46,7 @@ contract VaultTest is BaseSetup {
     function test_MintWithoutDeposit() external {
         vm.startPrank(user);
         vault.approve(address(router), true);
-        vm.expectRevert("Vault: minimumCollateral");
+        vm.expectRevert("Vault: minimumTINU");
         router.mintUnit(address(WETH), debtAmount, user);
         vm.stopPrank();
     }
@@ -55,10 +55,40 @@ contract VaultTest is BaseSetup {
         vm.startPrank(user);
         vm.deal(user, 10 ether);
         vault.approve(address(router), true);
-        vm.expectRevert("Vault: minimumCollateral");
+        vm.expectRevert("Vault: minimumTINU");
         router.increaseETHAndMint{value: 0.01 ether}(debtAmount, user);
         vm.expectRevert("Vault: unit debt out of range");
         router.increaseETHAndMint{value: 0.3 ether}(debtAmount, user);
+        router.increaseETHAndMint{value: 1.5 ether}(debtAmount, user);
+        ( uint256 tokenAssets, uint256 tinuDebt ) = vault.vaultOwnerAccount(user, address(WETH));
+        ( uint256 poolAssets, ) = vault.vaultPoolAccount(address(WETH));
+        assertEq(tokenAssets, 1.5 ether);
+        assertEq(tinuDebt, debtAmount);
+        assertEq(poolAssets, 1.5 ether);
+        vm.stopPrank();
+    }
+
+    function test_WithdrawAndBurn() external {
+        vm.startPrank(user);
+        vm.deal(user, 10 ether);
+        vault.approve(address(router), true);
+        vm.expectRevert("Vault: not enough collateral");
+        router.decreaseETHAndBurn(1 ether, 0, user);
+        router.increaseETHAndMint{value: 1.5 ether}(debtAmount, user);
+        vm.expectRevert("Collateral amount out of range");
+        router.decreaseETHAndBurn(1.2 ether, 0, user);
+        vm.expectRevert("ERC20: insufficient allowance");
+        router.decreaseETHAndBurn(0.2 ether, 990 * 1e18, user);
+        tinu.approve(address(router), 990 * 1e18);
+        vm.expectRevert("Vault: minimumTINU");
+        router.decreaseETHAndBurn(1.48 ether, 990 * 1e18, user);
+        tinu.approve(address(router), debtAmount);
+        router.decreaseETHAndBurn(1.5 ether, debtAmount, user);
+        ( uint256 tokenAssets, uint256 tinuDebt ) = vault.vaultOwnerAccount(user, address(WETH));
+        ( uint256 poolAssets, ) = vault.vaultPoolAccount(address(WETH));
+        assertEq(tokenAssets, 0);
+        assertEq(tinuDebt, 0);
+        assertEq(poolAssets, 0);
         vm.stopPrank();
     }
 }
