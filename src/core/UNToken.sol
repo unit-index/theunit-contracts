@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
 
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { ERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import { ERC20Votes } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
-contract Unit is ERC20, ERC20Permit, ERC20Votes {
-    constructor() ERC20("Unit", "UN") ERC20Permit("Unit") {
-        _mint(msg.sender, 8589934592 * 10 ** decimals());
+contract Unit is ERC20, Ownable, ERC20Permit, ERC20Votes {
+    constructor(address initialOwner)
+        ERC20("Unit", "UN")
+        Ownable(initialOwner)
+        ERC20Permit("Unit")
+    {}
+
+    function mint(address to, uint256 amount) public onlyOwner {
+        _mint(to, amount);
     }
 
     function _update(address from, address to, uint256 value)

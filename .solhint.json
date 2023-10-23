@@ -11,6 +11,8 @@
     "named-parameters-mapping": "off",
     "no-console": "off",
     "not-rely-on-time": "off",
-    "one-contract-per-file": "off"
+    "one-contract-per-file": "off",
+    "no-empty-blocks": "off",
+    "no-global-import": "off"
   }
 }
