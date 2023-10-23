@@ -2,11 +2,12 @@
 pragma solidity ^0.8.21;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
-contract Unit is ERC20, Ownable, ERC20Permit, ERC20Votes {
+contract Unit is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
     constructor(address initialOwner)
         ERC20("Unit", "UN")
         Ownable(initialOwner)
