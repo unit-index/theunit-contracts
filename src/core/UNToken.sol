@@ -4,23 +4,23 @@ pragma solidity ^0.8.21;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import  "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import { Nonces, ERC20Votes } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract Unit is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
 
-    uint256 public maxSupply;
+    uint256 public maxTokenSupply;
 
     constructor(address initialOwner, uint256 _maxSupply)
         ERC20("Unit", "UN")
         Ownable(initialOwner)
         ERC20Permit("Unit")
     {
-        maxSupply = _maxSupply;
+        maxTokenSupply = _maxSupply;
     }
 
     function mint(address to, uint256 amount) public onlyOwner {
-        require(totalSupply() + amount <= maxSupply, "Exceed max supply");
+        require(totalSupply() + amount <= maxTokenSupply, "Exceed max supply");
         _mint(to, amount);
     }
 
@@ -32,7 +32,7 @@ contract Unit is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
     }
 
     function maxSupply() public view override {
-        return maxSupply;
+        return maxTokenSupply;
     }
 
     function nonces(address owner)
