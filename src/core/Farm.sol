@@ -2,13 +2,10 @@
 
 pragma solidity ^0.8.21;
 
-import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Farm is Ownable {
-
-    using SafeMath for uint256;
 
     event Deposit(
         address indexed from,
@@ -96,11 +93,12 @@ contract Farm is Ownable {
     mapping (uint256 => mapping (address => UserInfo)) public userInfo; // pid => user => info 
 
     constructor(
+        address initialOwner,
         uint256 _periodBlock,
         uint256[] memory _unPerBlockList,
         uint256 _startBlock,
         address _un
-    ) {
+    ) Ownable(initialOwner) {
         periodBlock = _periodBlock; // 一个 period 周期是多少个block
         startBlock = _startBlock;       // 开始块
         lastPeriodStartBlock = startBlock;
@@ -124,7 +122,7 @@ contract Farm is Ownable {
 
     function add(uint256 _allocPoint, IERC20 _lpToken) public onlyOwner {
         uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
-        totalAllocPoint = totalAllocPoint.add(_allocPoint);
+        totalAllocPoint = totalAllocPoint + _allocPoint;
         poolInfo.push(PoolInfo({
             lpToken: _lpToken,
             allocPoint: _allocPoint,
@@ -144,10 +142,10 @@ contract Farm is Ownable {
         PoolInfo memory pool = poolInfo[_pid];
         pool.lpToken.transferFrom(address(msg.sender), address(this), _amount);
 
-        userUnlockIndexs[_to] =  userUnlockIndexs[_to].add(1);
+        userUnlockIndexs[_to] = userUnlockIndexs[_to] + 1;
         uint256 _unlockTime = lockTime[_multiplierIndex] + block.timestamp;
         uint256 _multiplier =  multipliers[_multiplierIndex];
-        uint256 _rewardDebt =  _amount.mul(_multiplier).mul(pool.accCakePerShare).div(1e12);
+        uint256 _rewardDebt =  _amount * _multiplier * pool.accCakePerShare / 1e12;
 
         userLock[_to][userUnlockIndexs[_to]] = UserLockInfo(
             _amount,
@@ -157,7 +155,7 @@ contract Farm is Ownable {
             _pid
         );
 
-        totalWeights = totalWeights.add(_amount.mul(_multiplier));
+        totalWeights = totalWeights + _amount * _multiplier;
 
         emit Deposit(_to, _multiplier, userUnlockIndexs[_to],  _amount);
     }
@@ -171,9 +169,9 @@ contract Farm is Ownable {
         updatePool(userLockInfo.pid);
 
         transfer(userLockInfo.pid, msg.sender, _amount);
-        userLockInfo.amount = userLockInfo.amount.sub(_amount);
+        userLockInfo.amount = userLockInfo.amount - _amount;
 
-        totalWeights = totalWeights.sub(_amount.mul(userLockInfo.multiplier));
+        totalWeights = totalWeights - _amount * userLockInfo.multiplier;
 
         emit Withdraw(msg.sender, _lockIndex, _amount);
     }
@@ -185,10 +183,10 @@ contract Farm is Ownable {
         uint256 _accCakePerShare = accCakePerShareArchive[_period];
 
         if (userLockInfo.amount > 0) {
-            uint256 pending = userLockInfo.amount.mul(userLockInfo.multiplier).mul(_accCakePerShare).div(1e12).sub(userLockInfo.rewardDebt);
+            uint256 pending = userLockInfo.amount * userLockInfo.multiplier * _accCakePerShare / 1e12 - userLockInfo.rewardDebt;
 
             // Update user's reward debt before making any external calls
-            userLockInfo.rewardDebt = userLockInfo.amount.mul(userLockInfo.multiplier).mul(_accCakePerShare).div(1e12);
+            userLockInfo.rewardDebt = userLockInfo.amount * userLockInfo.multiplier * _accCakePerShare / 1e12;
 
             if(pending > 0) {
                 IERC20(un).transfer(_to, pending);
@@ -223,17 +221,17 @@ contract Farm is Ownable {
         uint256 accCakePerShare = pool.accCakePerShare;
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 time = getTime(pool.lastRewardBlock, block.number);
-            uint256 cakeReward = time.mul(cakePerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+            uint256 cakeReward = time * cakePerBlock * pool.allocPoint * totalAllocPoint;
     
-            accCakePerShare = accCakePerShare.add(cakeReward.mul(1e12).div(lpSupply));
+            accCakePerShare = accCakePerShare + cakeReward * 1e12 / lpSupply;
         }
         
-        totalPending = userLockInfo.amount.mul(userLockInfo.multiplier).mul(accCakePerShare).div(1e12).sub(userLockInfo.rewardDebt);
+        totalPending = userLockInfo.amount * userLockInfo.multiplier * accCakePerShare / 1e12 - userLockInfo.rewardDebt;
 
         if(accCakePerShareArchive.length > 0) {
             for(uint i = 0; i< accCakePerShareArchive.length; i++) {
                 uint256 accCakePerShare1 = accCakePerShareArchive[i];
-                unLockPending += userLockInfo.amount.mul(userLockInfo.multiplier).mul(accCakePerShare1).div(1e12).sub(userLockInfo.rewardDebt);
+                unLockPending += userLockInfo.amount * userLockInfo.multiplier * accCakePerShare1 / 1e12 - userLockInfo.rewardDebt;
             }
         }
     
@@ -249,11 +247,11 @@ contract Farm is Ownable {
         uint256 length = poolInfo.length;
         uint256 points = 0;
         for (uint256 pid = 1; pid < length; ++pid) {
-            points = points.add(poolInfo[pid].allocPoint);
+            points = points + poolInfo[pid].allocPoint;
         }
         if (points != 0) {
-            points = points.div(3);
-            totalAllocPoint = totalAllocPoint.sub(poolInfo[0].allocPoint).add(points);
+            points = points / 3;
+            totalAllocPoint = totalAllocPoint - poolInfo[0].allocPoint + points;
             poolInfo[0].allocPoint = points;
         }
     }
@@ -280,21 +278,21 @@ contract Farm is Ownable {
         uint256 _lastRewardBlock =  pool.lastRewardBlock;
 
         uint256 time = getTime(pool.lastRewardBlock, block.number);
-        uint256 cakeReward = time.mul(cakePerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        uint256 cakeReward = time * cakePerBlock * pool.allocPoint / totalAllocPoint;
 
-        pool.accCakePerShare = pool.accCakePerShare.add(cakeReward.mul(1e12).div(lpSupply));
+        pool.accCakePerShare = pool.accCakePerShare + cakeReward * 1e12 / lpSupply;
         pool.lastRewardBlock = block.number;
 
         updatePeriod(_lastRewardBlock, pool.allocPoint, _accCakePerShare, lpSupply);
     }
 
     function updatePeriod(uint256 _lastRewardBlock, uint256 _allocPoint, uint256 _accCakePerShare, uint256 _lpSupply) internal {
-        uint256 diffBlock = block.number.sub(lastPeriodStartBlock);
+        uint256 diffBlock = block.number - lastPeriodStartBlock;
         if(diffBlock >= periodBlock) {
-             uint256 time = getTime(_lastRewardBlock, startBlock.add(periodBlock));
-             uint256 cakeReward = time.mul(cakePerBlock).mul(_allocPoint).div(totalAllocPoint);
-            accCakePerShareArchive.push(_accCakePerShare.add(cakeReward.mul(1e12).div(_lpSupply)));
-            lastPeriodStartBlock = lastPeriodStartBlock.add(periodBlock);
+             uint256 time = getTime(_lastRewardBlock, startBlock + periodBlock);
+             uint256 cakeReward = time * cakePerBlock * _allocPoint / totalAllocPoint;
+            accCakePerShareArchive.push(_accCakePerShare + cakeReward * 1e12 / _lpSupply);
+            lastPeriodStartBlock = lastPeriodStartBlock + periodBlock;
             periodIndex = periodIndex + 1;
             cakePerBlock = unPerBlockList[periodIndex]; // 减半
         }
@@ -306,7 +304,7 @@ contract Farm is Ownable {
     }
 
     function getTime(uint256 _from, uint256 _to) public pure returns (uint256) {
-        return _to.sub(_from);
+        return _to - _from;
     }
 
     function transferLockOwner(address _newOwner, uint256 _userUnlockIndex) public {

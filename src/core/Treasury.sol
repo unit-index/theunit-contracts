@@ -15,5 +15,4 @@ contract Treasury is ITreasury {
     function setGov(address _gov) public {
         gov = _gov;
     }
-
 }

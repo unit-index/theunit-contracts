@@ -2,12 +2,10 @@
 
 pragma solidity ^0.8.21;
 
-import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { IPriceFeed } from "../interfaces/IPriceFeed.sol";
 import { IVaultPriceFeed } from "../interfaces/IVaultPriceFeed.sol";
 
 contract VaultPriceFeed is IVaultPriceFeed {
-    using SafeMath for uint256;
 
     address public gov;
 

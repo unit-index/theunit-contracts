@@ -3,7 +3,6 @@
 pragma solidity ^0.8.21;
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { ITinuToken } from "../interfaces/ITinuToken.sol";
 import { ICollateralManager } from "../interfaces/ICollateralManager.sol";
 

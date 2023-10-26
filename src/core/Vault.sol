@@ -5,12 +5,9 @@ import { IVault } from "../interfaces/IVault.sol";
 import { ITinuToken } from "../interfaces/ITinuToken.sol";
 import { ICollateralManager } from "../interfaces/ICollateralManager.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { IVaultPriceFeed } from "../interfaces/IVaultPriceFeed.sol";
 
 contract Vault is IVault {
-
-    using SafeMath for uint256;
 
     event IncreaseCollateral (
         address indexed owner,
@@ -141,10 +138,10 @@ contract Vault is IVault {
         uint256 _balance0 = vaultPoolAccount[_collateralToken].tokenAssets;
         uint256 _balance1 = IERC20(_collateralToken).balanceOf(address(this));
         require(_balance1 > 0, "Vault: balance1==0");
-        uint256 _balanceDelta = _balance1.sub(_balance0);
+        uint256 _balanceDelta = _balance1 - _balance0;
         require(_balanceDelta > 0, "Vault: 0");
-        vaultOwnerAccount[_receiver][_collateralToken].tokenAssets =  vaultOwnerAccount[_receiver][_collateralToken].tokenAssets.add(_balanceDelta);
-        vaultPoolAccount[_collateralToken].tokenAssets =  vaultPoolAccount[_collateralToken].tokenAssets.add(_balanceDelta);
+        vaultOwnerAccount[_receiver][_collateralToken].tokenAssets =  vaultOwnerAccount[_receiver][_collateralToken].tokenAssets + _balanceDelta;
+        vaultPoolAccount[_collateralToken].tokenAssets =  vaultPoolAccount[_collateralToken].tokenAssets + _balanceDelta;
         emit IncreaseCollateral(
             _receiver, 
             vaultOwnerAccount[_receiver][_collateralToken].tinuDebt, 
@@ -173,8 +170,8 @@ contract Vault is IVault {
         uint256 _tokenAssets = vaultOwnerAccount[_from][_collateralToken].tokenAssets;
         require(_collateralAmount <= _tokenAssets, "Vault: not enough collateral");
 
-        vaultOwnerAccount[_from][_collateralToken].tokenAssets =  vaultOwnerAccount[_from][_collateralToken].tokenAssets.sub(_collateralAmount);
-        vaultPoolAccount[_collateralToken].tokenAssets =  vaultPoolAccount[_collateralToken].tokenAssets.sub(_collateralAmount);
+        vaultOwnerAccount[_from][_collateralToken].tokenAssets =  vaultOwnerAccount[_from][_collateralToken].tokenAssets - _collateralAmount;
+        vaultPoolAccount[_collateralToken].tokenAssets =  vaultPoolAccount[_collateralToken].tokenAssets - _collateralAmount;
      
         bool yes = validateLiquidation(_from, _collateralToken, true); 
         require(!yes, "Collateral amount out of range");
@@ -201,7 +198,7 @@ contract Vault is IVault {
     }
 
     function _increaseDebt(address _from, address _collateralToken, uint256 _amount, address _receiver) internal returns (bool)  {
-        vaultOwnerAccount[_from][_collateralToken].tinuDebt = vaultOwnerAccount[_from][_collateralToken].tinuDebt.add(_amount);
+        vaultOwnerAccount[_from][_collateralToken].tinuDebt = vaultOwnerAccount[_from][_collateralToken].tinuDebt + _amount;
         bool yes = validateLiquidation(_from, _collateralToken, true);
         require(!yes, "Vault: unit debt out of range");
 
@@ -235,7 +232,7 @@ contract Vault is IVault {
         uint256 _balance = IERC20(tinu).balanceOf(address(this));
         require(_balance > 0, "balance == 0");
         ITinuToken(tinu).burn(_balance);
-        vaultOwnerAccount[_receiver][_collateralToken].tinuDebt = vaultOwnerAccount[_receiver][_collateralToken].tinuDebt.sub(_balance);
+        vaultOwnerAccount[_receiver][_collateralToken].tinuDebt = vaultOwnerAccount[_receiver][_collateralToken].tinuDebt - _balance;
         emit DecreaseDebt(
             _receiver, 
             vaultOwnerAccount[_receiver][_collateralToken].tinuDebt,
@@ -256,8 +253,8 @@ contract Vault is IVault {
         ITinuToken(tinu).burn(account.tinuDebt);
 
         // 1%, liquidationTreasuryFee default 990
-        uint256 _treasuryFee =  account.tokenAssets.mul(1000).sub(account.tokenAssets.mul(liquidationTreasuryFee)).div(1000);
-        uint256 _returnCollateral = account.tokenAssets.sub(_treasuryFee);
+        uint256 _treasuryFee =  (account.tokenAssets * 1000 - account.tokenAssets * liquidationTreasuryFee) / 1000;
+        uint256 _returnCollateral = account.tokenAssets - _treasuryFee;
         account.tinuDebt = 0;
         account.tokenAssets = 0;
 
@@ -278,7 +275,7 @@ contract Vault is IVault {
             require(_tokenTinuAmount >=  minimumCollateral, "Vault: minimumTINU");
         }
 
-        if(_tokenTinuAmount.mul(1000) >= account.tinuDebt.mul(liquidationRatio)) { // liquidationRatio = 1150.  115.0  
+        if(_tokenTinuAmount * 1000 >= account.tinuDebt * liquidationRatio) { // liquidationRatio = 1150.  115.0  
             return false;
         }
         return true;
@@ -287,14 +284,14 @@ contract Vault is IVault {
     function _getLiquidationPrice(address _account, address _collateralToken ) public view returns(uint256) {
         Account memory account = vaultOwnerAccount[_account][_collateralToken];
         if (account.tokenAssets > 0) {
-            uint256 _liquidationPrice = account.tinuDebt.mul(liquidationRatio).div(account.tokenAssets);
+            uint256 _liquidationPrice = account.tinuDebt * liquidationRatio / account.tokenAssets;
             return _liquidationPrice;
         } 
         return 0;
     }
 
     function tokenToTinu(uint256 _price, uint256 amount) public pure returns(uint256){
-        return _price.mul(amount).div(1e18);
+        return _price * amount / 1e18;
     }
 
     function getPrice(address _token) public override view returns (uint256) {
@@ -306,8 +303,8 @@ contract Vault is IVault {
         Account storage newAccount = vaultOwnerAccount[_newAccount][_collateralToken];
         require(newAccount.tokenAssets == 0, "Vault: newAccount not new");     
         
-        newAccount.tokenAssets = newAccount.tokenAssets.add(account.tokenAssets);
-        newAccount.tinuDebt = newAccount.tinuDebt.add(account.tinuDebt);
+        newAccount.tokenAssets = newAccount.tokenAssets + account.tokenAssets;
+        newAccount.tinuDebt = newAccount.tinuDebt + account.tinuDebt;
 
         account.tokenAssets = 0;
         account.tinuDebt = 0;
