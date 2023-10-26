@@ -33,7 +33,7 @@ contract BaseSetup is PRBTest, StdCheats {
         vm.startPrank(owner);
         tinu = new TinuToken();
         WETH = new WETH9();
-        un = new Unit();
+        un = new Unit(owner, 8888);
         priceFeed = new UnitPriceFeed();
         priceFeed.setLatestAnswer(int256(price));
         vaultPriceFeed = new VaultPriceFeed();

@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.21;
 
-import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IUniswapV2Router01 } from "../test/IUniswapV2Router01.sol";
@@ -10,7 +9,6 @@ import { IWETH } from "../interfaces/IWETH.sol";
 import { IFarm } from "../interfaces/IFarm.sol";
 
 contract FarmRouter is Ownable {
-    using SafeMath for uint256;
 
     address public TINU;
 
@@ -27,6 +25,7 @@ contract FarmRouter is Ownable {
     address public pair1;
 
     constructor(
+        address initialOnwer,
         address _tinu, 
         address _un, 
         address _WETH , 
@@ -34,7 +33,7 @@ contract FarmRouter is Ownable {
         address _farm,
         address _pair0,
         address _pair1
-    ) {
+    ) Ownable(initialOnwer) {
         TINU = _tinu;
         UN = _un;
         WETH = _WETH;

@@ -4,7 +4,7 @@ pragma solidity ^0.8.21;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import  "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract Unit is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
@@ -27,19 +27,15 @@ contract Unit is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
 
     function _update(address from, address to, uint256 value)
         internal
-        override
+        override(ERC20, ERC20Votes)
     {
         super._update(from, to, value);
-    }
-
-    function maxSupply() public view override {
-        return maxTokenSupply;
     }
 
     function nonces(address owner)
         public
         view
-        override
+        override(ERC20Permit, Nonces)
         returns (uint256)
     {
         return super.nonces(owner);

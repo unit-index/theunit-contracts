@@ -3,14 +3,11 @@ pragma solidity ^0.8.21;
 
 import { console2 } from "forge-std/console2.sol";
 import { BaseSetup } from "./BaseSetup.t.sol";
-import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { Vault } from "../src/core/Vault.sol";
 import { TinuToken } from "../src/core/TinuToken.sol";
 import { RouterV1 } from "../src/peripherals/RouterV1.sol";
 
 contract VaultTest is BaseSetup {
-
-    using SafeMath for uint256;
 
     RouterV1 private router;
 

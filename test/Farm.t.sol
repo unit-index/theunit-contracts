@@ -3,7 +3,6 @@ pragma solidity ^0.8.21;
 
 import { console2 } from "forge-std/console2.sol";
 import { BaseSetup } from "./BaseSetup.t.sol";
-import { SafeMath } from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import { Farm } from "../src/core/Farm.sol";
 import { TinuToken } from "../src/core/TinuToken.sol";
 import { FarmRouter } from "../src/peripherals/FarmRouter.sol";
@@ -12,8 +11,6 @@ import { IUniswapV2Router01 } from "../src/test/IUniswapV2Router01.sol";
 import { IERC20 } from "../src/test/IERC20.sol";
 
 contract FarmTest is BaseSetup {
-
-    using SafeMath for uint256;
 
     // These are addresses of Arbitrum Goerli
     IUniswapV2Router01 private constant UNISWAP_ROUTER = 
@@ -39,6 +36,7 @@ contract FarmTest is BaseSetup {
         }
 
         farm = new Farm(
+            owner,
             172800, 
             cakesPerPeriod, 
             block.number,
@@ -49,6 +47,7 @@ contract FarmTest is BaseSetup {
         address pair1 = UNISWAP_FACTORY.createPair(address(UN), address(tinu));
 
         router = new FarmRouter(
+            owner,
             address(tinu),
             address(UN),
             address(WETH),
