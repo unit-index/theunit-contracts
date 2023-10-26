@@ -2,8 +2,10 @@
 
 pragma solidity 0.8.21;
 
-import { TicketToken } from "../core/TicketToken.sol";
+import { TicketUN } from "../core/TicketUN.sol";
 import { ITicketFactory } from "../interfaces/ITicketFactory.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { ITicketToken } from "../interfaces/ITicketToken.sol";
 
 contract TicketFactory is ITicketFactory {
     
@@ -17,8 +19,8 @@ contract TicketFactory is ITicketFactory {
     mapping (uint256 => address) public override ticketAddresses;
 
     function createTicket(uint256 _unLockTime) public override {
-        require(tickets[_ticket] == 0, "TokenFactory: Already exists unlcok time!");
-        address _ticket =  address(new TicketToken("Ticket UN", "tUN",_unLockTime));
+        require(ticketAddresses[_unLockTime] == address(0), "TokenFactory: Already exists unlcok time!");
+        address _ticket =  address(new TicketUN("Ticket UN", "tUN",_unLockTime));
         tickets[_ticket] = _unLockTime;
         ticketAddresses[_unLockTime] = _ticket;
     }
