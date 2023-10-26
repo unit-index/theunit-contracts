@@ -25,8 +25,6 @@ interface IVault {
     function liquidation(address _token, address _account, address _feeTo
     ) external returns (bool);
 
-    
-
     // function vaultOwnerAccount(address _receiver, address _collateralToken) external view returns (uint256);
 
     function increaseDebt(address _collateralToken, uint256 _amount, address _receiver) external returns (bool);
