@@ -20,11 +20,13 @@ contract TokenFactory is ITokenFactory {
     }
 
     mapping (address => uint256) public tickets;
+    mapping (uint256 => address) public ticketAddresses;
 
     function createTicket(uint256 _unLockTime) public override {
         require(tickets[_ticket] == 0, "");
         address _ticket =  address(new TicketToken("Ticket UN", "tUN",_unLockTime));
         tickets[_ticket] = _unLockTime;
+        ticketAddresses[_unLockTime] = _ticket;
     }
 
     function unlock(address _ticket, uint256 _amount, address _to) public override {

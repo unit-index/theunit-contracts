@@ -8,13 +8,19 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract Unit is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
-    constructor(address initialOwner)
+
+    uint256 public maxSupply;
+
+    constructor(address initialOwner, uint256 _maxSupply)
         ERC20("Unit", "UN")
         Ownable(initialOwner)
         ERC20Permit("Unit")
-    {}
+    {
+        maxSupply = _maxSupply;
+    }
 
     function mint(address to, uint256 amount) public onlyOwner {
+        require(totalSupply() + amount <= maxSupply, "Exceed max supply");
         _mint(to, amount);
     }
 
@@ -23,6 +29,10 @@ contract Unit is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
         override(ERC20, ERC20Votes)
     {
         super._update(from, to, value);
+    }
+
+    function maxSupply() public view override {
+        return maxSupply;
     }
 
     function nonces(address owner)
