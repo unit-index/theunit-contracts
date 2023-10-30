@@ -39,7 +39,7 @@ contract FarmRouter is Ownable {
         address _pair0,
         address _pair1,
         address _VAULT
-    ) {
+    ) Ownable(initialOnwer){
         TINU = _tinu;
         UN = _un;
         WETH = _WETH;
@@ -47,7 +47,6 @@ contract FarmRouter is Ownable {
         farm = _farm;
         pair0 = _pair0;
         pair1 = _pair1;
-
         VAULT = _VAULT;
 
         setApprove();
@@ -55,9 +54,8 @@ contract FarmRouter is Ownable {
 
     function setApprove() public {
         IWETH(WETH).approve(uniswapRouter, type(uint256).max );
-        IERC20(TINU).approve(uniswapRouter,type(uint256).max );
-        IERC20(UN).approve(uniswapRouter
-        , type(uint256).max );
+        IERC20(TINU).approve(uniswapRouter, type(uint256).max );
+        IERC20(UN).approve(uniswapRouter, type(uint256).max );
     }
 
     function depositETHAndAddLiquidity(
@@ -72,18 +70,11 @@ contract FarmRouter is Ownable {
         require(msg.value > 0, "FarmRouter: value cannot be 0");
         IWETH(WETH).deposit{value: msg.value}();
         // uint256 ethBalance = IWETH(WETH).balanceOf(address(this));
-
         IWETH(WETH).transfer(VAULT, ethAmountInMax);
         IVault(VAULT).increaseCollateral(WETH, address(this));
         IVault(VAULT).increaseDebt(WETH, tinuAmountOut , address(this));
-       
-       ( uint256 tokenAssets, uint256 tinuDebt ) = IVault(VAULT).vaultOwnerAccount(address(this), address(WETH));
-        console.log("depositETHAndAddLiquidity", tokenAssets, tinuDebt);
-
-        // uint256 ethBalance = IWETH(WETH).balanceOf(address(this));
-        // uint256 tinuBalance =  IWETH(TINU).balanceOf(address(this));
-        // console.log("balance:", ethBalance, tinuBalance);
-        // add ETH/TINU
+    //    ( uint256 tokenAssets, uint256 tinuDebt ) = IVault(VAULT).vaultOwnerAccount(address(this), address(WETH));
+        // console.log("depositETHAndAddLiquidity", tokenAssets, tinuDebt);
         IUniswapV2Router01(uniswapRouter).addLiquidity(
             WETH,
             TINU,
@@ -94,12 +85,11 @@ contract FarmRouter is Ownable {
             address(this),
             block.timestamp+1
         );
-        
-        // add TINU/UN
+    
         address[] memory path1 = new address[](2);
         path1[0] = TINU;
         path1[1] = UN;
-
+    
         IUniswapV2Router01(uniswapRouter).swapTokensForExactTokens(
             uint(unAmountOut),
             uint(tinuAmountInMax),
@@ -108,29 +98,24 @@ contract FarmRouter is Ownable {
             block.timestamp+1
         );
 
-        // IUniswapV2Router01(uniswapRouter).addLiquidity(
-        //     UN,
-        //     TINU,
-        //     amountB[0],
-        //     amountB[1],
-        //     0,
-        //     0,
-        //     address(this),
-        //     block.timestamp+1
-        // );
+        IUniswapV2Router01(uniswapRouter).addLiquidity(
+            UN,
+            TINU,
+            amountB[0],
+            amountB[1],
+            0,
+            0,
+            address(this),
+            block.timestamp+1
+        );
 
-        // uint256 lp0Amount = IERC20(pair0).balanceOf(address(this));
-        // uint256 lp1Amount = IERC20(pair1).balanceOf(address(this));
+        uint256 lp0Amount = IERC20(pair0).balanceOf(address(this));
+        uint256 lp1Amount = IERC20(pair1).balanceOf(address(this));
 
-        // IERC20(pair0).approve(address(this), type(uint256).max );
-        // IERC20(pair1).approve(address(this), type(uint256).max );
+        IERC20(pair0).approve(address(farm), type(uint256).max );
+        IERC20(pair1).approve(address(farm), type(uint256).max );
 
-        // IFarm(farm).depositAndLock(0, _multiplierIndex, lp0Amount, address(this));
-
-        // IFarm(farm).depositAndLock(1, _multiplierIndex, lp1Amount, msg.sender);
+        IFarm(farm).depositAndLock(0, _multiplierIndex, lp0Amount, address(msg.sender));
+        IFarm(farm).depositAndLock(1, _multiplierIndex, lp1Amount, address((msg.sender)));
     }
-
-    // function swapAndAddLiquidity() internal {
-        
-    // }
 }

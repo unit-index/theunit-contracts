@@ -8,8 +8,11 @@ import { TinuToken } from "../src/core/TinuToken.sol";
 import { FarmRouter } from "../src/peripherals/FarmRouter.sol";
 import { IUniswapV2Factory } from "../src/test/IUniswapV2Factory.sol";
 import { IUniswapV2Router01 } from "../src/test/IUniswapV2Router01.sol";
-import { IERC20 } from "../src/test/IERC20.sol";
+// import { IERC20 } from "../src/test/IERC20.sol";
 import { RouterV1 } from "../src/peripherals/RouterV1.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import "forge-std/console.sol"; // test
 
 contract FarmTest is BaseSetup {
 
@@ -18,7 +21,7 @@ contract FarmTest is BaseSetup {
         IUniswapV2Router01(0x45cCf01182Fb4f95d6C4F64d70105B2BA0DAC3Bf);
     IUniswapV2Factory private constant UNISWAP_FACTORY = 
         IUniswapV2Factory(0xD729EEbe443C12417d4c9661556357d3F9Fb4036);
-    IERC20 private constant UN = IERC20(0x101627e8e52f627951BBdEC88418B131eE890cbE);
+    // IERC20 private constant UN = IERC20(0x101627e8e52f627951BBdEC88418B131eE890cbE);
 
     RouterV1 private vaultRouter;
 
@@ -46,16 +49,19 @@ contract FarmTest is BaseSetup {
             172800, 
             cakesPerPeriod, 
             block.number,
-            address(UN)
+            address(un)
         );
 
         address pair0 = UNISWAP_FACTORY.createPair(address(WETH), address(tinu));
-        address pair1 = UNISWAP_FACTORY.createPair(address(UN), address(tinu));
+        address pair1 = UNISWAP_FACTORY.createPair(address(un), address(tinu));
       
+        farm.add(0, IERC20(pair0));
+        farm.add(1, IERC20(pair1));
+
         router = new FarmRouter(
             owner,
             address(tinu),
-            address(UN),
+            address(un),
             address(WETH),
             address(UNISWAP_ROUTER),
             address(farm),
@@ -68,7 +74,6 @@ contract FarmTest is BaseSetup {
         // test_DepositAndMint();
         depositAndMint();
 
-
         tinu.approve(address(UNISWAP_ROUTER), type(uint256).max);
         WETH.approve(address(UNISWAP_ROUTER), type(uint256).max);
         WETH.deposit{value: 1 ether}();
@@ -76,10 +81,9 @@ contract FarmTest is BaseSetup {
 
         un.mint(owner, 100 ether);
         un.approve(address(UNISWAP_ROUTER), type(uint256).max);
-        UNISWAP_ROUTER.addLiquidity(address(tinu), address(un), 30 ether, 3 ether, 0, 0, owner, 99999999999999999);
-
+        (uint a, uint b, uint lp) = UNISWAP_ROUTER.addLiquidity(address(tinu), address(un), 30 ether, 3 ether, 0, 0, owner, 99999999999999999);
+        console2.log("lp:",a, b, lp);
         vm.stopPrank();
-
     }
 
     function depositAndMint() public {
@@ -105,8 +109,8 @@ contract FarmTest is BaseSetup {
         uint256 ethPrice = vaultPriceFeed.getPrice(address(WETH));
         assertEq(ethPrice, price);
         uint256 ethAmount = 0.1 * 1e18;
-        uint256 tinuVaultAmount = (ethAmount * 4 * price).div(liquidationRatio + recommendRatio).mul(100);
-        uint256 tinuPoolAmount = tinuVaultAmount.mul(3).div(4);
+        // uint256 tinuVaultAmount = (ethAmount * 4 * price).div(liquidationRatio + recommendRatio).mul(100);
+        // uint256 tinuPoolAmount = tinuVaultAmount.mul(3).div(4);
 
         uint256[] memory amountA = new uint256[](2);
         amountA[0] = 1e18;
@@ -117,11 +121,17 @@ contract FarmTest is BaseSetup {
             200 * 1e18, 
             10 * 1e18, 
             amountA,
-            1 * 1e18, 
+            1 * 1e17,
             3 * 1e18, 
             amountA,
             1
         );
+
+        vm.roll(10000);
+
+        ( uint256 a, uint256 b, uint256 c, uint256 d ) = farm.pendingRewards(0, address(user));
+        
+        console.log( a,b,c,d);
 
         vm.stopPrank();
     }
