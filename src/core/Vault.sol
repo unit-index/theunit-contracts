@@ -140,8 +140,10 @@ contract Vault is IVault {
         require(_balance1 > 0, "Vault: balance1==0");
         uint256 _balanceDelta = _balance1 - _balance0;
         require(_balanceDelta > 0, "Vault: 0");
-        vaultOwnerAccount[_receiver][_collateralToken].tokenAssets =  vaultOwnerAccount[_receiver][_collateralToken].tokenAssets + _balanceDelta;
-        vaultPoolAccount[_collateralToken].tokenAssets =  vaultPoolAccount[_collateralToken].tokenAssets + _balanceDelta;
+        vaultOwnerAccount[_receiver][_collateralToken].tokenAssets = 
+            vaultOwnerAccount[_receiver][_collateralToken].tokenAssets + _balanceDelta;
+        vaultPoolAccount[_collateralToken].tokenAssets = 
+            vaultPoolAccount[_collateralToken].tokenAssets + _balanceDelta;
         emit IncreaseCollateral(
             _receiver, 
             vaultOwnerAccount[_receiver][_collateralToken].tinuDebt, 
@@ -170,8 +172,10 @@ contract Vault is IVault {
         uint256 _tokenAssets = vaultOwnerAccount[_from][_collateralToken].tokenAssets;
         require(_collateralAmount <= _tokenAssets, "Vault: not enough collateral");
 
-        vaultOwnerAccount[_from][_collateralToken].tokenAssets =  vaultOwnerAccount[_from][_collateralToken].tokenAssets - _collateralAmount;
-        vaultPoolAccount[_collateralToken].tokenAssets =  vaultPoolAccount[_collateralToken].tokenAssets - _collateralAmount;
+        vaultOwnerAccount[_from][_collateralToken].tokenAssets = 
+            vaultOwnerAccount[_from][_collateralToken].tokenAssets - _collateralAmount;
+        vaultPoolAccount[_collateralToken].tokenAssets = 
+            vaultPoolAccount[_collateralToken].tokenAssets - _collateralAmount;
      
         bool yes = validateLiquidation(_from, _collateralToken, true); 
         require(!yes, "Collateral amount out of range");
@@ -197,8 +201,14 @@ contract Vault is IVault {
         return true;
     }
 
-    function _increaseDebt(address _from, address _collateralToken, uint256 _amount, address _receiver) internal returns (bool)  {
-        vaultOwnerAccount[_from][_collateralToken].tinuDebt = vaultOwnerAccount[_from][_collateralToken].tinuDebt + _amount;
+    function _increaseDebt(
+        address _from, 
+        address _collateralToken, 
+        uint256 _amount, 
+        address _receiver
+    ) internal returns (bool)  {
+        vaultOwnerAccount[_from][_collateralToken].tinuDebt = 
+            vaultOwnerAccount[_from][_collateralToken].tinuDebt + _amount;
         bool yes = validateLiquidation(_from, _collateralToken, true);
         require(!yes, "Vault: unit debt out of range");
 
@@ -213,12 +223,21 @@ contract Vault is IVault {
         return true;
     }
     
-    function increaseDebt(address _collateralToken, uint256 _amount, address _receiver) external override returns (bool)  {
+    function increaseDebt(
+        address _collateralToken, 
+        uint256 _amount, 
+        address _receiver
+    ) external override returns (bool)  {
         _increaseDebt(msg.sender, _collateralToken, _amount, _receiver);
         
         return true;
     }
-    function increaseDebtFrom(address _from, address _collateralToken, uint256 _amount, address _receiver) external override returns (bool)  {
+    function increaseDebtFrom(
+        address _from, 
+        address _collateralToken, 
+        uint256 _amount, 
+        address _receiver
+    ) external override returns (bool)  {
         require(allowances[_from][msg.sender], "Vault: not allow");
         _increaseDebt(_from, _collateralToken, _amount, _receiver);
 
@@ -232,7 +251,8 @@ contract Vault is IVault {
         uint256 _balance = IERC20(tinu).balanceOf(address(this));
         require(_balance > 0, "balance == 0");
         ITinuToken(tinu).burn(_balance);
-        vaultOwnerAccount[_receiver][_collateralToken].tinuDebt = vaultOwnerAccount[_receiver][_collateralToken].tinuDebt - _balance;
+        vaultOwnerAccount[_receiver][_collateralToken].tinuDebt = 
+            vaultOwnerAccount[_receiver][_collateralToken].tinuDebt - _balance;
         emit DecreaseDebt(
             _receiver, 
             vaultOwnerAccount[_receiver][_collateralToken].tinuDebt,
@@ -266,7 +286,11 @@ contract Vault is IVault {
         return true;
     }
 
-    function validateLiquidation(address _account, address _collateralToken, bool _checkCollateral ) public view returns(bool){
+    function validateLiquidation(
+        address _account, 
+        address _collateralToken, 
+        bool _checkCollateral 
+    ) public view returns(bool){
         Account memory account = vaultOwnerAccount[_account][_collateralToken];
         uint256 _price = getPrice(_collateralToken);
         uint256 _tokenTinuAmount = tokenToTinu(_price, account.tokenAssets);
