@@ -7,6 +7,7 @@ out
 # files
 *.env
 *.log
+
 .DS_Store
 .pnp.*
 lcov.info
@@ -16,4 +17,3 @@ yarn.lock
 !broadcast
 broadcast/*
 broadcast/*/31337/
-lib
