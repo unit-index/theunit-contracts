@@ -26,7 +26,7 @@ interface IVault {
     ) external returns (bool);
 
     // function vaultOwnerAccount(address _receiver, address _collateralToken) external view returns (uint256);
-
+    function flashLoan(address _collateralToken, uint256 _amount, address _receiver, bytes calldata _data) external returns (bool);
     function increaseDebt(address _collateralToken, uint256 _amount, address _receiver) external returns (bool);
     function increaseDebtFrom(address from,address _collateralToken, uint256 _amount, address _receiver) external returns (bool);
 

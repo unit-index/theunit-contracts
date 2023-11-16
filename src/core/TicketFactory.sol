@@ -8,7 +8,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ITicketToken } from "../interfaces/ITicketToken.sol";
 
 contract TicketFactory is ITicketFactory {
-    
+    event TicketCreated(
+        address indexed ticket,
+        uint256 unLockTime
+    );
+
     address public un;
 
     constructor(address _un) {
@@ -23,8 +27,8 @@ contract TicketFactory is ITicketFactory {
         address _ticket =  address(new TicketUN("Ticket UN", "tUN",_unLockTime));
         tickets[_ticket] = _unLockTime;
         ticketAddresses[_unLockTime] = _ticket;
+        emit TicketCreated(_ticket, _unLockTime);
     }
-
 
     function unlock(address _ticket, uint256 _amount, address _to) public override {
         require( tickets[_ticket] > 0 && tickets[_ticket] < block.timestamp, "TokenFactory: cannot claim yet");
