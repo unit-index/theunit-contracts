@@ -7,7 +7,7 @@ import { StdCheats } from "forge-std/StdCheats.sol";
 import { Vault } from "../src/core/Vault.sol";
 import { WETH9 } from "../src/test/WETH.sol";
 import { TinuToken } from "../src/core/TinuToken.sol";
-import { Unit } from "../src/core/UNToken.sol";
+import { Unit } from "../src/core/Unit.sol";
 import { UnitPriceFeed } from "../src/oracle/UnitPriceFeed.sol";
 import { VaultPriceFeed } from "../src/core/VaultPriceFeed.sol";
 

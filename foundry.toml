@@ -13,9 +13,10 @@
   optimizer_runs = 10_000
   out = "out"
   script = "script"
-  solc = "0.8.21"
+  solc = "/opt/homebrew/bin/solc"
   src = "src"
   test = "test"
+  fs_permissions = [{ access = "read", path = "./"}]
 
 [profile.ci]
   fuzz = { runs = 10_000 }

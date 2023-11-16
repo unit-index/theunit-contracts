@@ -7,7 +7,9 @@
     "url": "https://github.com/toknowwhy"
   },
   "devDependencies": {
-    "prettier": "^3.0.0"
+    "@types/node": "^20.9.0",
+    "prettier": "^3.0.0",
+    "ts-node": "^10.9.1"
   },
   "keywords": [
     "blockchain",
@@ -22,6 +24,8 @@
   "scripts": {
     "clean": "rm -rf cache out",
     "build": "forge build",
+    "deploy:ticket:arbitrumGoerli": "forge script script/DeployTicket.s.sol:DeployToken --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN",
+    "generate": "ts-node ./script/generateContracts.ts",
     "lint": "pnpm lint:sol && pnpm prettier:check",
     "lint:sol": "forge fmt --check && pnpm solhint {script,src,test}/**/*.sol",
     "prettier:check": "prettier --check **/*.{json,md,yml} --ignore-path=.prettierignore",
