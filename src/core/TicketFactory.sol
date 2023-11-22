@@ -13,7 +13,7 @@ contract TicketFactory is ITicketFactory {
         address indexed ticket,
         uint256 unLockTime
     );
-    
+
     address public un;
 
     constructor(address _un) {
@@ -31,7 +31,6 @@ contract TicketFactory is ITicketFactory {
         emit TicketCreated(_ticket, _unLockTime);
         return _ticket;
     }
-
 
     function unlock(address _ticket, uint256 _amount, address _to) public override {
         require( tickets[_ticket] > 0 && tickets[_ticket] < block.timestamp, "TokenFactory: cannot claim yet");

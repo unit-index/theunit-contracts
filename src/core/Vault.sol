@@ -6,6 +6,7 @@ import { ITinuToken } from "../interfaces/ITinuToken.sol";
 import { ICollateralManager } from "../interfaces/ICollateralManager.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IVaultPriceFeed } from "../interfaces/IVaultPriceFeed.sol";
+import { IFlashLoan } from "../interfaces/IFlashLoan.sol";
 
 contract Vault is IVault {
 
@@ -73,7 +74,7 @@ contract Vault is IVault {
 
     uint256 public liquidationTreasuryFee = 990; // 990 = 1.0%
 
-    uint256 public liquidationRatio = 1150; // 1150 = 15.0%
+    // uint256 public liquidationRatio = 1150; // 1150 = 15.0% 
     
     uint256 public minimumCollateral = 100 * 1e18 ; // default 100 UNIT
     
@@ -87,6 +88,8 @@ contract Vault is IVault {
     mapping (address => Account) public vaultPoolAccount;
 
     mapping(address => mapping(address => bool)) public allowances;
+
+    mapping (address => uint256 ) public liquidationRatio; // , 这里改成每个币不一样。照顾下LP token。 LP不清算
 
     modifier onlyGov {
         require(msg.sender == gov, "Vault: onlyGov");
@@ -106,8 +109,8 @@ contract Vault is IVault {
         priceFeed = _priceFeed;
     }
 
-    function setLiquidationRatio(uint256 _ratio) public onlyGov {
-        liquidationRatio = _ratio;
+    function setLiquidationRatio(address _token, uint256 _ratio) public onlyGov {
+        liquidationRatio[_token] = _ratio;
     }
     function setTreasury(address _treasury) public  onlyGov{
         treasury = _treasury;
@@ -159,7 +162,7 @@ contract Vault is IVault {
         address _receiver,
         uint256 _collateralAmount
     ) external override returns (bool){
-        _decreaseCollateral(msg.sender, _collateralToken, _receiver, _collateralAmount);
+        _decreaseCollateral(msg.sender, _collateralToken, _receiver, _collateralAmount, new bytes(0));
         return true;
     }
 
@@ -167,7 +170,8 @@ contract Vault is IVault {
         address _from,
         address _collateralToken,
         address _receiver,
-        uint256 _collateralAmount
+        uint256 _collateralAmount,
+        bytes memory _params
     ) internal returns (bool){
         uint256 _tokenAssets = vaultOwnerAccount[_from][_collateralToken].tokenAssets;
         require(_collateralAmount <= _tokenAssets, "Vault: not enough collateral");
@@ -176,11 +180,14 @@ contract Vault is IVault {
             vaultOwnerAccount[_from][_collateralToken].tokenAssets - _collateralAmount;
         vaultPoolAccount[_collateralToken].tokenAssets = 
             vaultPoolAccount[_collateralToken].tokenAssets - _collateralAmount;
-     
-        bool yes = validateLiquidation(_from, _collateralToken, true); 
-        require(!yes, "Collateral amount out of range");
 
-        IERC20(_collateralToken).transfer(_receiver, _collateralAmount);
+       IERC20(_collateralToken).transfer(_receiver, _collateralAmount);
+
+       if (_params.length > 0) IFlashLoan(_receiver).flashLoanCall(_from, _collateralToken, _collateralAmount, _params);
+
+        bool yes = validateLiquidation(_from, _collateralToken, true); 
+        require(!yes, "Vault: Collateral amount out of range");
+
         emit DecreaseCollateral(
             _from, 
             vaultOwnerAccount[_from][_collateralToken].tinuDebt, 
@@ -197,7 +204,7 @@ contract Vault is IVault {
         uint256 _collateralAmount
     ) external override returns (bool){
         require(allowances[_from][msg.sender], "Vault: not allow");
-        _decreaseCollateral(_from, _collateralToken, _receiver, _collateralAmount);
+        _decreaseCollateral(_from, _collateralToken, _receiver, _collateralAmount, new bytes(0));
         return true;
     }
 
@@ -205,14 +212,17 @@ contract Vault is IVault {
         address _from, 
         address _collateralToken, 
         uint256 _amount, 
-        address _receiver
+        address _receiver,
+        bytes memory _params
     ) internal returns (bool)  {
         vaultOwnerAccount[_from][_collateralToken].tinuDebt = 
             vaultOwnerAccount[_from][_collateralToken].tinuDebt + _amount;
+        ITinuToken(tinu).mint(_receiver, _amount);
+        if (_params.length > 0) IFlashLoan(_receiver).flashLoanCall(_from, _collateralToken, _amount, _params);
+
         bool yes = validateLiquidation(_from, _collateralToken, true);
         require(!yes, "Vault: unit debt out of range");
 
-        ITinuToken(tinu).mint(_receiver, _amount);
         emit IncreaseDebt(
             _from, 
             vaultOwnerAccount[_from][_collateralToken].tinuDebt,
@@ -222,14 +232,23 @@ contract Vault is IVault {
         );
         return true;
     }
+
+    function flashLoan(
+        address _collateralToken, 
+        uint256 _amount, 
+        address _receiver,
+        bytes calldata _data
+    ) external override returns (bool) {
+        _increaseDebt(msg.sender, _collateralToken, _amount, _receiver, _data);
+        return true;
+    }
     
     function increaseDebt(
         address _collateralToken, 
         uint256 _amount, 
         address _receiver
     ) external override returns (bool)  {
-        _increaseDebt(msg.sender, _collateralToken, _amount, _receiver);
-        
+        _increaseDebt(msg.sender, _collateralToken, _amount, _receiver, new bytes(0));
         return true;
     }
     function increaseDebtFrom(
@@ -239,8 +258,7 @@ contract Vault is IVault {
         address _receiver
     ) external override returns (bool)  {
         require(allowances[_from][msg.sender], "Vault: not allow");
-        _increaseDebt(_from, _collateralToken, _amount, _receiver);
-
+        _increaseDebt(_from, _collateralToken, _amount, _receiver, new bytes(0));
         return true;
     }
 
@@ -262,6 +280,10 @@ contract Vault is IVault {
         );
 
         return true;
+    }
+
+    function increaseDebtToken(address _debtToken, uint256 _amount, address _receiver) public {
+        
     }
 
     function liquidation(address _collateralToken, address _account, address _feeTo) external override returns (bool) {
@@ -299,7 +321,7 @@ contract Vault is IVault {
             require(_tokenTinuAmount >=  minimumCollateral, "Vault: minimumTINU");
         }
 
-        if(_tokenTinuAmount * 1000 >= account.tinuDebt * liquidationRatio) { // liquidationRatio = 1150.  115.0  
+        if(_tokenTinuAmount * 1000 >= account.tinuDebt * liquidationRatio[_collateralToken]) { // liquidationRatio = 1150.  115.0  
             return false;
         }
         return true;
@@ -308,7 +330,7 @@ contract Vault is IVault {
     function _getLiquidationPrice(address _account, address _collateralToken ) public view returns(uint256) {
         Account memory account = vaultOwnerAccount[_account][_collateralToken];
         if (account.tokenAssets > 0) {
-            uint256 _liquidationPrice = account.tinuDebt * liquidationRatio / account.tokenAssets;
+            uint256 _liquidationPrice = account.tinuDebt * liquidationRatio[_collateralToken] / account.tokenAssets;
             return _liquidationPrice;
         } 
         return 0;
