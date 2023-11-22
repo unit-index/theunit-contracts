@@ -7,39 +7,48 @@ const getAbi = (type: string) =>
 const getBlob = (type: string, chainId: string) => 
     JSON.parse(fs.readFileSync(`${rootFolder}/broadcast/Deploy${type}.s.sol/${chainId}/run-latest.json`, "utf8"));
 
-const supportedChains = [421613]
-// const contracts = ['Token', 'Farm', 'Vault'];
-const contracts = ['Token'];
-const result: any = {};
+const contracts = ['Ticket'];
+
+const frontendPath = path.join(__dirname, '../../theunit-frontend/crypto', 'contracts.json');
+const currentVersion = '0.0.1';
+let contractsJson: any;
+
+
+if (fs.existsSync(frontendPath)) {
+    contractsJson = {
+        name: 'UNIT Contracts',
+        version: currentVersion,
+        contracts: {}
+    };
+} else {
+    contractsJson = JSON.parse(fs.readFileSync(frontendPath, "utf8"));
+}
+
+const chainId = process.argv[3];
+const resultContracts = contractsJson.contracts as any;
 
 try {
+    const contractNameToInfo: any = {};
     for (let i=0; i<contracts.length; i++) {
         const contractName = contracts[i];
-        for (let j=0; j<supportedChains.length; j++) {
-            const chainId = supportedChains[j].toString();
-            const deployInfo = getBlob(contractName, chainId);
-            const transactions = deployInfo.transactions;
-            for (let q=0; q<transactions.length; q++) {
-                const transaction = transactions[q];
-                const name = transaction.contractName;
-                if (j == 0) {
-                    result[name] = { 
-                        abi: getAbi(name), 
-                        deployments: {} 
-                    };
-                }
-                result[name]["deployments"][chainId] = transaction.contractAddress;
-    
-            }
+        const deployInfo = getBlob(contractName, chainId);
+        const transactions = deployInfo.transactions;
+        for (let q=0; q<transactions.length; q++) {
+            const transaction = transactions[q];
+            const name = transaction.contractName;
+            const abi = getAbi(name);
+            contractNameToInfo[name] = {
+                abi,
+                address: transaction.contractAddress
+            };
         }
     }
+    resultContracts[chainId] = contractNameToInfo;
+    fs.writeFileSync(frontendPath, JSON.stringify({
+        ...contractsJson,
+        version: currentVersion,
+        contracts: resultContracts
+    }));
 } catch(e) {
     console.error('Generate contracts.json failed:', e);
 }
-
-fs.writeFile(path.join(__dirname, '../../theunit-frontend/crypto', 'contracts.json'), JSON.stringify(result), (err) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-});

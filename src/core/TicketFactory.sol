@@ -23,12 +23,13 @@ contract TicketFactory is ITicketFactory {
     mapping (address => uint256) public override tickets;
     mapping (uint256 => address) public override ticketAddresses;
 
-    function createTicket(uint256 _unLockTime) public override {
+    function createTicket(uint256 _unLockTime) public override returns(address) {
         require(ticketAddresses[_unLockTime] == address(0), "TokenFactory: unlock time exists");
         address _ticket =  address(new TicketUN("Ticket UN", "tUN",_unLockTime));
         tickets[_ticket] = _unLockTime;
         ticketAddresses[_unLockTime] = _ticket;
         emit TicketCreated(_ticket, _unLockTime);
+        return _ticket;
     }
 
 

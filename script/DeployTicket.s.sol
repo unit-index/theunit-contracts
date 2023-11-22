@@ -6,7 +6,7 @@ import { console2 } from "forge-std/console2.sol";
 import { Unit } from "../src/core/Unit.sol";
 import { TicketFactory } from "../src/core/TicketFactory.sol";
 
-contract DeployToken is BaseScript {
+contract DeployTicket is BaseScript {
     function run() public broadcast returns (bool) {
 
         TicketFactory factory = new TicketFactory(address(bridgedUN));
