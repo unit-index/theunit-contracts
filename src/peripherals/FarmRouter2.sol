@@ -22,7 +22,7 @@ contract FarmRouter2 is Ownable {
 
     address public uniswapRouter;
 
-    address public constant UNISWAP_FACTORY;
+    address public UNISWAP_FACTORY;
 
     address public WETH;
 
@@ -41,27 +41,33 @@ contract FarmRouter2 is Ownable {
         address _WETH , 
         address _uniswapRouter,
         address _farm,
-        address _pair0,
-        address _pair1,
-        address _VAULT
-    ) {
+        address _VAULT,
+        address _UNISWAP_FACTORY
+    ) Ownable(initialOnwer) {
         TINU = _tinu;
         UN = _un;
         WETH = _WETH;
         uniswapRouter = _uniswapRouter;
         farm = _farm;
-        pair0 = _pair0;
-        pair1 = _pair1;
         VAULT = _VAULT;
+        UNISWAP_FACTORY = _UNISWAP_FACTORY;
     }
 
-    function deposit() public payable {
+    function depositETH() public payable {
         require(msg.value > 0, "FarmRouter: value cannot be 0");
         IWETH(WETH).deposit{value: msg.value}();
-        // (uint amountA, uint amountB) = _addLiquidity(WETH, TINU, );
+    }
 
+
+    function deposit() public payable {
+
+        (uint reserveA, uint reserveB) = UniswapV2Library.getReserves(UNISWAP_FACTORY, WETH, TINU);
+        console.log(reserveA, reserveB);
+        // uint amountBOptimal = UniswapV2Library.quote(wethBalance, reserveA, reserveB);
+        // console.log(amountBOptimal);
+
+        // console.log(amountBOptimal);
         // bytes memory _data = abi.encodeWithSignature("addLiquidity(address)", amountA);
-
         // IVault(VAULT).flashLoan(pair0, amountB, address(this), _data);
     }
 
@@ -74,24 +80,25 @@ contract FarmRouter2 is Ownable {
         uint amountBMin
     ) internal virtual returns (uint amountA, uint amountB) {
         // create the pair if it doesn't exist yet
-        if (IUniswapV2Factory(UNISWAP_FACTORY).getPair(tokenA, tokenB) == address(0)) {
-            IUniswapV2Factory(UNISWAP_FACTORY).createPair(tokenA, tokenB);
-        }
-        (uint reserveA, uint reserveB) = PancakeLibrary.getReserves(UNISWAP_FACTORY, tokenA, tokenB);
+        // if (IUniswapV2Factory(UNISWAP_FACTORY).getPair(tokenA, tokenB) == address(0)) {
+        //     IUniswapV2Factory(UNISWAP_FACTORY).createPair(tokenA, tokenB);
+        // }
+        (uint reserveA, uint reserveB) = UniswapV2Library.getReserves(UNISWAP_FACTORY, tokenA, tokenB);
         if (reserveA == 0 && reserveB == 0) {
             (amountA, amountB) = (amountADesired, amountBDesired);
         } else {
-            uint amountBOptimal = PancakeLibrary.quote(amountADesired, reserveA, reserveB);
+            uint amountBOptimal = UniswapV2Library.quote(amountADesired, reserveA, reserveB);
             if (amountBOptimal <= amountBDesired) {
                 require(amountBOptimal >= amountBMin, 'PancakeRouter: INSUFFICIENT_B_AMOUNT');
                 (amountA, amountB) = (amountADesired, amountBOptimal);
             } else {
-                uint amountAOptimal = PancakeLibrary.quote(amountBDesired, reserveB, reserveA);
+                uint amountAOptimal = UniswapV2Library.quote(amountBDesired, reserveB, reserveA);
                 assert(amountAOptimal <= amountADesired);
                 require(amountAOptimal >= amountAMin, 'PancakeRouter: INSUFFICIENT_A_AMOUNT');
                 (amountA, amountB) = (amountAOptimal, amountBDesired);
             }
         }
+
     }
 
     // function addLiquidity(address user, uint256 wethAmount, uint256 tinuAmount) public {

@@ -41,7 +41,7 @@ contract BaseSetup is PRBTest, StdCheats {
         vault.setPriceFeed(address(vaultPriceFeed));
         tinu.setMinter(address(vault));
         vaultPriceFeed.setTokenConfig(address(WETH), address(priceFeed), 18);
-        liquidationRatio = vault.liquidationRatio();
+        liquidationRatio = vault.liquidationRatio(address(WETH));
         vm.stopPrank();
     }
 }
