@@ -7,7 +7,9 @@
     "url": "https://github.com/toknowwhy"
   },
   "devDependencies": {
-    "prettier": "^3.0.0"
+    "@types/node": "^20.9.0",
+    "prettier": "^3.0.0",
+    "ts-node": "^10.9.1"
   },
   "keywords": [
     "blockchain",
@@ -22,6 +24,18 @@
   "scripts": {
     "clean": "rm -rf cache out",
     "build": "forge build",
+
+
+    "deploy:token:goerli": "forge script script/DeployToken.s.sol:DeployToken --rpc-url https://goerli.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ETHERSCAN",
+    "mint:token:goerli": "forge script script/MintToken.s.sol:MintToken $TO $AMOUNT --sig 'run(address,uint256)' --rpc-url https://goerli.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ETHERSCAN",
+    "deploy:ticket:arbitrumGoerli": "forge script script/DeployTicket.s.sol:DeployTicket --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN",
+    "create:ticket:arbitrumGoerli": "forge script script/CreateTicket.s.sol:CreateTicket $TIMESTAMP --sig 'run(uint256)' --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
+    "mint:ticket:arbitrumGoerli": "forge script script/MintTicket.s.sol:MintTicket $TICKET $TO $AMOUNT --sig 'run(address,address,uint256)' --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
+
+
+    "generate:arbitrumGoerli": "ts-node ./script/generateContracts.ts -- 421613",
+
+
     "lint": "pnpm lint:sol && pnpm prettier:check",
     "lint:sol": "forge fmt --check && pnpm solhint {script,src,test}/**/*.sol",
     "prettier:check": "prettier --check **/*.{json,md,yml} --ignore-path=.prettierignore",
