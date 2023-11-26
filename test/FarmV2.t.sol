@@ -6,6 +6,8 @@ import { BaseSetup } from "./BaseSetup.t.sol";
 import { Farm } from "../src/core/Farm.sol";
 import { TinuToken } from "../src/core/TinuToken.sol";
 import { FarmRouter2 } from "../src/peripherals/FarmRouter2.sol";
+import { UnitPriceFeed } from "../src/oracle/UnitPriceFeed.sol";
+
 import { IUniswapV2Factory } from "../src/test/IUniswapV2Factory.sol";
 import { IUniswapV2Router01 } from "../src/test/IUniswapV2Router01.sol";
 // import { IERC20 } from "../src/test/IERC20.sol";
@@ -44,6 +46,7 @@ contract FarmTest is BaseSetup {
             cakesPerPeriod[i] = amount / (i * 2);
         }
 
+      
         farm = new Farm(
             owner,
             172800, 
@@ -58,7 +61,12 @@ contract FarmTest is BaseSetup {
         farm.add(0, IERC20(pair0));
         farm.add(1, IERC20(pair1));
         
-        // console.log(pair0);
+        console.log(pair0);
+        priceFeed = new UnitPriceFeed();
+        uint256 price = 1100000 * 1e18;
+        priceFeed.setLatestAnswer(int256(price));
+        vaultPriceFeed.setTokenConfig(pair0, address(priceFeed), 18);
+
         router = new FarmRouter2(
             owner,
             address(tinu),
@@ -80,38 +88,28 @@ contract FarmTest is BaseSetup {
         vm.deal(owner, 10 ether);
         WETH.deposit{value: 1 ether}(); 
 
-
-        // UNISWAP_ROUTER.addLiquidity(address(tinu), address(WETH), 10000000000000000, 100000000000, 0, 0, owner, 99999999999999999);
+        UNISWAP_ROUTER.addLiquidity(address(tinu), address(WETH), 10000000000000000, 100000000000, 0, 0, owner, 99999999999999999);
 
         vm.stopPrank();
     }
-
 
     function depositAndMint() public {
         // vm.startPrank(user);
         vm.deal(owner, 10 ether);
         vault.approve(address(vaultRouter), true);
-        vm.expectRevert("Vault: minimumTINU");
-        vaultRouter.increaseETHAndMint{value: 0.01 ether}(debtAmount, owner);
-        vm.expectRevert("Vault: unit debt out of range");
-
-        // vaultRouter.increaseETHAndMint{value: 0.3 ether}(debtAmount, owner);
-
-        // vaultRouter.increaseETHAndMint{value: 1.5 ether}(debtAmount, owner);
-        // ( uint256 tokenAssets, uint256 tinuDebt ) = vault.vaultOwnerAccount(owner, address(WETH));
-        // ( uint256 poolAssets, ) = vault.vaultPoolAccount(address(WETH));
-        // assertEq(tokenAssets, 1.5 ether);
-        // assertEq(tinuDebt, debtAmount);
-        // assertEq(poolAssets, 1.5 ether);
+        vaultRouter.increaseETHAndMint{value: 1.5 ether}(debtAmount, owner);
+        ( uint256 tokenAssets, uint256 tinuDebt ) = vault.vaultOwnerAccount(owner, address(WETH));
+        ( uint256 poolAssets, ) = vault.vaultPoolAccount(address(WETH));
+        assertEq(tokenAssets, 1.5 ether);
+        assertEq(tinuDebt, debtAmount);
+        assertEq(poolAssets, 1.5 ether);
         // vm.stopPrank();
     }
 
     function test_DepositETH() external {
         vm.startPrank(user);
         vm.deal(user, 100 ether);
-
-        router.deposit{value: 100 ether}();
-
+        router.deposit{value: 10 ether}();
         vm.stopPrank();
     }
 }

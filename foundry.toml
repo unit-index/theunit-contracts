@@ -16,11 +16,7 @@
   solc = "/opt/homebrew/bin/solc"
   src = "src"
   test = "test"
-<<<<<<< HEAD
-  
-=======
   fs_permissions = [{ access = "read", path = "./"}]
->>>>>>> 2cc67f69b5f96b719233ac2e7764d3d3829d523c
 
 [profile.ci]
   fuzz = { runs = 10_000 }
