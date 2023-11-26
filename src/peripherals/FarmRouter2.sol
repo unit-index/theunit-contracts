@@ -9,12 +9,14 @@ import { IUniswapV2Factory } from "../test/IUniswapV2Factory.sol";
 import { IWETH } from "../interfaces/IWETH.sol";
 import { IFarm } from "../interfaces/IFarm.sol";
 import { IVault } from "../interfaces/IVault.sol";
+import { IFlashLoan } from "../interfaces/IFlashLoan.sol";
+import { IUniswapPair } from "../interfaces/IUniswapPair.sol";
 
 import '../libraries/UniswapV2Library.sol';
 
-import "forge-std/console.sol"; // test
+// import "forge-std/console.sol"; // test
 
-contract FarmRouter2 is Ownable {
+contract FarmRouter2 is Ownable, IFlashLoan {
     
     address public TINU;
 
@@ -58,67 +60,34 @@ contract FarmRouter2 is Ownable {
         IWETH(WETH).deposit{value: msg.value}();
     }
 
-
     function deposit() public payable {
-
+        require(msg.value > 0, "FarmRouter: value cannot be 0");
+        IWETH(WETH).deposit{value: msg.value}();
+        uint256 wethBalance = IWETH(WETH).balanceOf(address(this));
         (uint reserveA, uint reserveB) = UniswapV2Library.getReserves(UNISWAP_FACTORY, WETH, TINU);
-        console.log(reserveA, reserveB);
-        // uint amountBOptimal = UniswapV2Library.quote(wethBalance, reserveA, reserveB);
-        // console.log(amountBOptimal);
-
-        // console.log(amountBOptimal);
-        // bytes memory _data = abi.encodeWithSignature("addLiquidity(address)", amountA);
-        // IVault(VAULT).flashLoan(pair0, amountB, address(this), _data);
+        uint amountBOptimal = UniswapV2Library.quote(wethBalance, reserveA, reserveB);
+        address pair =  UniswapV2Library.pairFor(UNISWAP_FACTORY, WETH, TINU);
+        bytes memory _data = abi.encodeWithSignature("addLiquidity(address,address,address,uint256,uint256)", pair, WETH, TINU, wethBalance, amountBOptimal);
+        IVault(VAULT).flashLoan(pair, amountBOptimal, address(this), _data);
     }
 
-    function _addLiquidity(
-        address tokenA,
-        address tokenB,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMin,
-        uint amountBMin
-    ) internal virtual returns (uint amountA, uint amountB) {
-        // create the pair if it doesn't exist yet
-        // if (IUniswapV2Factory(UNISWAP_FACTORY).getPair(tokenA, tokenB) == address(0)) {
-        //     IUniswapV2Factory(UNISWAP_FACTORY).createPair(tokenA, tokenB);
-        // }
-        (uint reserveA, uint reserveB) = UniswapV2Library.getReserves(UNISWAP_FACTORY, tokenA, tokenB);
-        if (reserveA == 0 && reserveB == 0) {
-            (amountA, amountB) = (amountADesired, amountBDesired);
-        } else {
-            uint amountBOptimal = UniswapV2Library.quote(amountADesired, reserveA, reserveB);
-            if (amountBOptimal <= amountBDesired) {
-                require(amountBOptimal >= amountBMin, 'PancakeRouter: INSUFFICIENT_B_AMOUNT');
-                (amountA, amountB) = (amountADesired, amountBOptimal);
-            } else {
-                uint amountAOptimal = UniswapV2Library.quote(amountBDesired, reserveB, reserveA);
-                assert(amountAOptimal <= amountADesired);
-                require(amountAOptimal >= amountAMin, 'PancakeRouter: INSUFFICIENT_A_AMOUNT');
-                (amountA, amountB) = (amountAOptimal, amountBDesired);
-            }
-        }
-
+    function flashLoanCall(address _sender, address _collateralToken, uint256 _amount, bytes calldata _data) external override {
+        require(msg.sender == VAULT, "");
+        address(this).call(_data);
+        IVault(VAULT).increaseCollateral(_collateralToken, _sender);
     }
 
-    // function addLiquidity(address user, uint256 wethAmount, uint256 tinuAmount) public {
-    //     IUniswapV2Router01(uniswapRouter).addLiquidity(
-    //         WETH,
-    //         TINU,
-    //         wethAmount,
-    //         tinuAmount,
-    //         0,
-    //         0,
-    //         VAULT,
-    //         block.timestamp+1
-    //     );
+    function addLiquidity(address pair, address tokenA, address tokenB, uint256 amountA, uint256 amountB) public {
+        uint256 _amountA = IERC20(tokenA).balanceOf(address(this));
+        uint256 _amountB = IERC20(tokenB).balanceOf(address(this));
+        require(amountA == _amountA, "FarmRouter2: INSUFFICIENT amountA");
+        require(amountB == _amountB, "FarmRouter2: INSUFFICIENT amountB");
+        IERC20(tokenA).transfer(pair, _amountA);
+        IERC20(tokenB).transfer(pair, _amountB);
+        IUniswapPair(pair).mint(VAULT);
+    }
 
-    //      IVault(VAULT).increaseCollateral(pair0, user);
-    // }
-
-    // function withdraw(address _collateralToken, uint256 _amount) public {
-        
-    // }
-
-
+    function withdraw(address _collateralToken, uint256 _amount) public {
+          
+    }
 }

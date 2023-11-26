@@ -40,7 +40,7 @@ contract VaultPriceFeed is IVaultPriceFeed {
     // 把价格统一转成了30位
     function getPrice(address _token) public override view returns (uint256) {
         address priceFeedAddress = priceFeeds[_token];
-        require(priceFeedAddress != address(0), "Invalid price feed");
+        require(priceFeedAddress != address(0), "VaultPriceFeed: Invalid price feed");
         IPriceFeed priceFeed = IPriceFeed(priceFeedAddress);
         int256 price = priceFeed.latestAnswer();
         // uint256 _priceDecimals = priceDecimals[_token];

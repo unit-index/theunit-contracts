@@ -75,8 +75,9 @@ contract Vault is IVault {
     uint256 public liquidationTreasuryFee = 990; // 990 = 1.0%
 
     // uint256 public liquidationRatio = 1150; // 1150 = 15.0% 
-    
     uint256 public minimumCollateral = 100 * 1e18 ; // default 100 UNIT
+
+    uint256 public flashLoanFee = 999; // 999 = 0.1%
     
     struct Account {
         uint256 tokenAssets;
@@ -89,8 +90,18 @@ contract Vault is IVault {
 
     mapping(address => mapping(address => bool)) public allowances;
 
-    mapping (address => uint256 ) public liquidationRatio; // , 这里改成每个币不一样。照顾下LP token。 LP不清算
+    mapping (address => uint256 ) public liquidationRatio;
 
+    mapping (address => bool) freeFlashLoanWhitelist;
+    
+    uint private unlocked = 1;
+    
+    modifier lock() {
+        require(unlocked == 1, "Vault: LOCKED");
+        unlocked = 0;
+        _;
+        unlocked = 1;
+    }
     modifier onlyGov {
         require(msg.sender == gov, "Vault: onlyGov");
         _;
@@ -238,16 +249,57 @@ contract Vault is IVault {
         uint256 _amount, 
         address _receiver,
         bytes calldata _data
-    ) external override returns (bool) {
+    ) external lock override returns (bool) {
+        if(!freeFlashLoanWhitelist[msg.sender] && flashLoanFee > 0) {
+            uint256 _fee =  (_amount * 1000 - _amount * flashLoanFee) / 1000;
+            IERC20(tinu).transferFrom(msg.sender, treasury, _fee);
+        }
         _increaseDebt(msg.sender, _collateralToken, _amount, _receiver, _data);
         return true;
     }
+    
+    function flashLoanFrom(
+        address _from, 
+        address _collateralToken, 
+        uint256 _amount, 
+        address _receiver,
+        bytes calldata _data
+    ) external lock override returns (bool) {
+        require(allowances[_from][msg.sender], "Vault: not allow");
+        if(!freeFlashLoanWhitelist[msg.sender] && flashLoanFee > 0) {
+            uint256 _fee =  (_amount * 1000 - _amount * flashLoanFee) / 1000;
+            IERC20(tinu).transferFrom(msg.sender, treasury, _fee);
+        }
+
+        _increaseDebt(_from, _collateralToken, _amount, _receiver, _data);
+        return true;
+    }
+
+    // function flashLoanAssets(
+    //     address _from,
+    //     address _collateralToken, 
+    //     uint256 _amount, 
+    //     address _receiver,
+    //     bytes calldata _data
+    // ) external lock returns (bool) {
+    //     if(!freeFlashLoanWhitelist[msg.sender] && flashLoanFee > 0) {
+    //         uint256 _fee =  (_amount * 1000 - _amount * flashLoanFee) / 1000;
+    //         IERC20(_collateralToken).transferFrom(msg.sender, treasury, _fee);
+    //     }
+
+    //     uint256 _totalAmount = IERC20(_collateralToken).balanceOf(address(this));
+    //     require(_amount <= _totalAmount, "Vault: out of total amount");
+    //     if (_data.length > 0) IFlashLoan(_receiver).flashLoanCall(_from, _collateralToken, _amount, _data);
+    //     uint256 _afterTotalAmount = IERC20(_collateralToken).balanceOf(address(this));
+    //     require(_afterTotalAmount >= _totalAmount, "Vault: out of total amount");
+    //     return true;
+    // }
     
     function increaseDebt(
         address _collateralToken, 
         uint256 _amount, 
         address _receiver
-    ) external override returns (bool)  {
+    ) external lock override returns (bool)  {
         _increaseDebt(msg.sender, _collateralToken, _amount, _receiver, new bytes(0));
         return true;
     }
@@ -256,7 +308,7 @@ contract Vault is IVault {
         address _collateralToken, 
         uint256 _amount, 
         address _receiver
-    ) external override returns (bool)  {
+    ) external lock override returns (bool)  {
         require(allowances[_from][msg.sender], "Vault: not allow");
         _increaseDebt(_from, _collateralToken, _amount, _receiver, new bytes(0));
         return true;
@@ -280,10 +332,6 @@ contract Vault is IVault {
         );
 
         return true;
-    }
-
-    function increaseDebtToken(address _debtToken, uint256 _amount, address _receiver) public {
-        
     }
 
     function liquidation(address _collateralToken, address _account, address _feeTo) external override returns (bool) {
