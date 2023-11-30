@@ -135,12 +135,16 @@ contract Vault is IVault {
         liquidationTreasuryFee = _liquidationTreasuryFee;
     }
 
+    function setFreeFlashLoanWhitelist(address _addr, bool _isActive)  public  onlyGov{
+        freeFlashLoanWhitelist[_addr] = _isActive;
+    }
+
     // the governance controlling this function should have a timelock
     function upgradeVault(address _newVault, address _token, uint256 _amount) external onlyGov {
         IERC20(_token).transfer(_newVault, _amount);
     }
 
-    function approve(address _operator, bool _allow) public {
+    function approve(address _operator, bool _allow) external override {
         allowances[msg.sender][_operator] = _allow;
         emit Approval(msg.sender, _operator, _allow);
     }
@@ -212,10 +216,11 @@ contract Vault is IVault {
         address _from,
         address _collateralToken,
         address _receiver,
-        uint256 _collateralAmount
+        uint256 _collateralAmount,
+        bytes calldata _data
     ) external override returns (bool){
         require(allowances[_from][msg.sender], "Vault: not allow");
-        _decreaseCollateral(_from, _collateralToken, _receiver, _collateralAmount, new bytes(0));
+        _decreaseCollateral(_from, _collateralToken, _receiver, _collateralAmount, _data);
         return true;
     }
 
@@ -270,30 +275,31 @@ contract Vault is IVault {
             uint256 _fee =  (_amount * 1000 - _amount * flashLoanFee) / 1000;
             IERC20(tinu).transferFrom(msg.sender, treasury, _fee);
         }
-
         _increaseDebt(_from, _collateralToken, _amount, _receiver, _data);
         return true;
     }
 
-    // function flashLoanAssets(
-    //     address _from,
-    //     address _collateralToken, 
-    //     uint256 _amount, 
-    //     address _receiver,
-    //     bytes calldata _data
-    // ) external lock returns (bool) {
-    //     if(!freeFlashLoanWhitelist[msg.sender] && flashLoanFee > 0) {
-    //         uint256 _fee =  (_amount * 1000 - _amount * flashLoanFee) / 1000;
-    //         IERC20(_collateralToken).transferFrom(msg.sender, treasury, _fee);
-    //     }
+    function flashLoanAssets(
+        address _from,
+        address _collateralToken,
+        uint256 _amount, 
+        address _receiver,
+        bytes calldata _data
+    ) external lock override returns (bool) {
+        if(!freeFlashLoanWhitelist[msg.sender] && flashLoanFee > 0) {
+            uint256 _fee =  (_amount * 1000 - _amount * flashLoanFee) / 1000;
+            IERC20(_collateralToken).transferFrom(msg.sender, treasury, _fee);
+        }
 
-    //     uint256 _totalAmount = IERC20(_collateralToken).balanceOf(address(this));
-    //     require(_amount <= _totalAmount, "Vault: out of total amount");
-    //     if (_data.length > 0) IFlashLoan(_receiver).flashLoanCall(_from, _collateralToken, _amount, _data);
-    //     uint256 _afterTotalAmount = IERC20(_collateralToken).balanceOf(address(this));
-    //     require(_afterTotalAmount >= _totalAmount, "Vault: out of total amount");
-    //     return true;
-    // }
+        uint256 _totalAmount = IERC20(_collateralToken).balanceOf(address(this));
+        require(_amount <= _totalAmount, "Vault: out of total amount");
+        IERC20(_collateralToken).transfer(_receiver, _amount); // 放贷
+        if (_data.length > 0) IFlashLoan(_receiver).flashLoanCall(_from, _collateralToken, _amount, _data); //使用资金
+        IERC20(_collateralToken).transferFrom(_receiver, address(this), _amount); // 收回, 资金必须让合约收回，不能让用户自己还款。
+        uint256 _afterTotalAmount = IERC20(_collateralToken).balanceOf(address(this));
+        require(_afterTotalAmount >= _totalAmount, "Vault: out of total amount");
+        return true;
+    }
     
     function increaseDebt(
         address _collateralToken, 

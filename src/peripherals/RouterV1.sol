@@ -63,14 +63,14 @@ contract RouterV1 {
 
     function decreaseCollateral(address _collateralToken, uint256 _tokenAmount, address _receiver) external returns(bool)  {
         require(_tokenAmount > 0, "UintRouter: amount cannot be 0");
-        IVault(VAULT).decreaseCollateralFrom(msg.sender, _collateralToken, _receiver, _tokenAmount);
+        IVault(VAULT).decreaseCollateralFrom(msg.sender, _collateralToken, _receiver, _tokenAmount, new bytes(0));
         emit DecreaseCollateral(_receiver, _collateralToken, _tokenAmount);
         return true;
     }
 
     function decreaseETH(uint256 _ETHAmount, address _receiver) external returns(bool)  {
         require(_ETHAmount > 0, "UintRouter: amount cannot be 0");
-        IVault(VAULT).decreaseCollateralFrom(msg.sender, WETH, address(this), _ETHAmount);
+        IVault(VAULT).decreaseCollateralFrom(msg.sender, WETH, address(this), _ETHAmount , new bytes(0));
         IWETH(WETH).withdraw(_ETHAmount);
         safeTransferETH(_receiver, _ETHAmount);
         emit DecreaseCollateral(_receiver, WETH, _ETHAmount);
@@ -110,7 +110,7 @@ contract RouterV1 {
     function decreaseCollateralAndBurn(address _collateralToken, uint256 _tokenAmount, uint256 _UNITAmount, address _receiver) public returns(bool) {
         require(_tokenAmount > 0 || _UNITAmount > 0, "UintRouter: amount cannot be 0");  
         if(_UNITAmount > 0) {
-            IVault(VAULT).decreaseCollateralFrom(msg.sender, _collateralToken, _receiver, _tokenAmount);
+            IVault(VAULT).decreaseCollateralFrom(msg.sender, _collateralToken, _receiver, _tokenAmount, new bytes(0));
             IERC20(TINU).transferFrom(msg.sender, VAULT, _UNITAmount);
             emit DecreaseCollateral(_receiver, _collateralToken, _tokenAmount);
         }
@@ -146,7 +146,7 @@ contract RouterV1 {
         }
     
         if(_ETHAmount > 0) {
-            IVault(VAULT).decreaseCollateralFrom(msg.sender, WETH, address(this), _ETHAmount);
+            IVault(VAULT).decreaseCollateralFrom(msg.sender, WETH, address(this), _ETHAmount, new bytes(0));
             uint256 wethBalance = IERC20(WETH).balanceOf(address(this));
             require(wethBalance > 0, "UintRouter: WETH not allow 0");
             IWETH(WETH).withdraw(wethBalance);
@@ -176,7 +176,7 @@ contract RouterV1 {
         require(_ETHAmount > 0 || _UNITAmount > 0, "UintRouter: amount cannot be 0");
 
         if(_ETHAmount > 0) {
-            IVault(VAULT).decreaseCollateralFrom(msg.sender, WETH, address(this), _ETHAmount);
+            IVault(VAULT).decreaseCollateralFrom(msg.sender, WETH, address(this), _ETHAmount, new bytes(0));
             uint256 wethBalance = IERC20(WETH).balanceOf(address(this));
             require(wethBalance > 0, "UintRouter: WETH not allow 0");
             IWETH(WETH).withdraw(wethBalance);
