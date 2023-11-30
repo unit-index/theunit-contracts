@@ -31,6 +31,7 @@
     "deploy:ticket:arbitrumGoerli": "forge script script/DeployTicket.s.sol:DeployTicket --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN",
     "create:ticket:arbitrumGoerli": "forge script script/CreateTicket.s.sol:CreateTicket $TIMESTAMP --sig 'run(uint256)' --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
     "mint:ticket:arbitrumGoerli": "forge script script/MintTicket.s.sol:MintTicket $TICKET $TO $AMOUNT --sig 'run(address,address,uint256)' --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
+    "deploy:collateral:arbitrumGoerli": "forge script script/DeployMintTestCollateral.s.sol:DeployMintTestCollateral $TO $AMOUNT --sig 'run(address,uint256)' --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN",
 
 
     "generate:arbitrumGoerli": "ts-node ./script/generateContracts.ts -- 421613",
