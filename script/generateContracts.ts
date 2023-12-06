@@ -7,7 +7,7 @@ const getAbi = (type: string) =>
 const getBlob = (type: string, chainId: string) => 
     JSON.parse(fs.readFileSync(`${rootFolder}/broadcast/Deploy${type}.s.sol/${chainId}/run-latest.json`, "utf8"));
 
-const contracts = ['Ticket'];
+const contracts = ['Ticket', 'Vault'];
 
 const frontendPath = path.join(__dirname, '../../theunit-frontend/crypto', 'contracts.json');
 const currentVersion = '0.0.1';
@@ -35,12 +35,14 @@ try {
         const transactions = deployInfo.transactions;
         for (let q=0; q<transactions.length; q++) {
             const transaction = transactions[q];
-            const name = transaction.contractName;
-            const abi = getAbi(name);
-            contractNameToInfo[name] = {
-                abi,
-                address: transaction.contractAddress
-            };
+            if (transaction.transactionType === 'CREATE') {
+                const name = transaction.contractName;
+                const abi = getAbi(name);
+                contractNameToInfo[name] = {
+                    abi,
+                    address: transaction.contractAddress
+                };
+            }
         }
     }
     resultContracts[chainId] = contractNameToInfo;
