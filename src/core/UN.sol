@@ -7,16 +7,16 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
-contract Unit is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
+contract UNITDAO is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
 
     // State variable to keep track of the maximum token supply.
     uint256 public maxTokenSupply;
 
     // Constructor sets up the token and initializes the Ownable and ERC20Permit aspects.
     constructor(address initialOwner, uint256 _maxSupply)
-        ERC20("Unit", "UN")
+        ERC20("UNIT DAO", "UN")
         Ownable(initialOwner)
-        ERC20Permit("Unit")
+        ERC20Permit("UNIT DAO")
     {
         maxTokenSupply = _maxSupply;
     }
