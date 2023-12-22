@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
-contract UNITDAO is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
+contract UN is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
 
     // State variable to keep track of the maximum token supply.
     uint256 public maxTokenSupply;
