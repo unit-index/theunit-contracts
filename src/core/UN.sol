@@ -9,25 +9,36 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract UN is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
 
-    // State variable to keep track of the maximum token supply.
-    uint256 public maxTokenSupply;
+    /**
+     * @notice Max supply of UN, which is 2^33 = 8589934592
+     */
+    uint256 private _maxTokenSupply = 8589934592 * 10 ** decimals();
 
-    // Constructor sets up the token and initializes the Ownable and ERC20Permit aspects.
-    constructor(address initialOwner, uint256 _maxSupply)
+    constructor(address initialOwner)
         ERC20("UNIT DAO", "UN")
         Ownable(initialOwner)
         ERC20Permit("UNIT DAO")
-    {
-        maxTokenSupply = _maxSupply;
-    }
+    {}
 
-    // Allows the owner to create new tokens, as long as it doesn't exceed maxTokenSupply. 
+    /**
+     * @dev Only owner can mint UN, as long as it doesn't exceed _maxTokenSupply
+     */
     function mint(address to, uint256 amount) public onlyOwner {
-        require(totalSupply() + amount <= maxTokenSupply, "Exceed max supply");
+        require(totalSupply() + amount <= getMaxSupply(), "Exceed max supply");
         _mint(to, amount);
     }
 
-    // Overriding the _update function to properly manage vote balances during token transfers.
+    /**
+     * @dev Returns the max supply of UN
+     */
+    function getMaxSupply() public view returns (uint256) {
+         return _maxTokenSupply;
+    }
+
+    /**
+     * @dev Overriding the _update function to properly 
+     *      manage vote balances during token transfers.
+     */
     function _update(address from, address to, uint256 value)
         internal
         override(ERC20, ERC20Votes)
@@ -35,7 +46,9 @@ contract UN is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
         super._update(from, to, value); // Call parent function from both ERC20 and ERC20Votes.
     }
 
-    // Overriding the nonces function to support gasless transactions.
+    /**
+     * @dev Overriding the nonces function to support gasless transactions.
+     */
     function nonces(address owner)
         public
         view
