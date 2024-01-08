@@ -7,12 +7,13 @@ import { Farm } from "../src/core/Farm.sol";
 import { TinuToken } from "../src/core/TinuToken.sol";
 import { FarmRouter2 } from "../src/peripherals/FarmRouter2.sol";
 import { UnitPriceFeed } from "../src/oracle/UnitPriceFeed.sol";
-
+import { IVault } from "../src/interfaces/IVault.sol";
 import { IUniswapV2Factory } from "../src/test/IUniswapV2Factory.sol";
 import { IUniswapV2Router01 } from "../src/test/IUniswapV2Router01.sol";
 // import { IERC20 } from "../src/test/IERC20.sol";
 import { RouterV1 } from "../src/peripherals/RouterV1.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { ULP } from "../src/staking/ULP.sol";
 
 import "forge-std/console.sol"; // test
 
@@ -27,12 +28,15 @@ contract FarmTest is BaseSetup {
     RouterV1 private vaultRouter;
     Farm public farm;
 
-    FarmRouter2
-    public router;
+    FarmRouter2 public router;
 
     uint256 public amount = 1000000 * 1e18;
     uint256 private collateralAmount = 0.01 * 1e18;
     uint256 private debtAmount = 1000 * 1e18;
+
+    address private pairETHTINU;
+
+    ULP public ulp;
 
     function setUp() public override {
         super.setUp();
@@ -45,7 +49,6 @@ contract FarmTest is BaseSetup {
         for (uint8 i=1; i<periodCount; i++) {
             cakesPerPeriod[i] = amount / (i * 2);
         }
-
       
         farm = new Farm(
             owner,
@@ -58,27 +61,31 @@ contract FarmTest is BaseSetup {
         address pair0 = UNISWAP_FACTORY.createPair(address(WETH), address(tinu));
         address pair1 = UNISWAP_FACTORY.createPair(address(un), address(tinu));
 
+        pairETHTINU = pair0;
         farm.add(0, IERC20(pair0));
         farm.add(1, IERC20(pair1));
         
-        console.log(pair0);
+        // console.log(pair0);
         priceFeed = new UnitPriceFeed();
         uint256 price = 1100000 * 1e18;
         priceFeed.setLatestAnswer(int256(price));
         vaultPriceFeed.setTokenConfig(pair0, address(priceFeed), 18);
+
+        ulp = new ULP(pair0);
 
         router = new FarmRouter2(
             owner,
             address(tinu),
             address(un),
             address(WETH),
-            address(UNISWAP_ROUTER),
-            address(farm),
             address(vault),
-            address(UNISWAP_FACTORY)
+            address(UNISWAP_FACTORY),
+            address(ulp)
         );
+        
+        IVault(vault).setFreeFlashLoanWhitelist(address(router), true);
 
-       vaultRouter = new RouterV1(address(vault), address(WETH), address(tinu));
+        vaultRouter = new RouterV1(address(vault), address(WETH), address(tinu));
         
         depositAndMint();
 
@@ -109,7 +116,31 @@ contract FarmTest is BaseSetup {
     function test_DepositETH() external {
         vm.startPrank(user);
         vm.deal(user, 100 ether);
-        router.deposit{value: 10 ether}();
+
+        vault.approve(address(router), true);
+        router.depositETH{value: 10 ether}();
+
+        // (uint256 asset, uint256 debt) = vault.vaultOwnerAccount(user, address(pairETHTINU));
+        // console.log(asset, debt);
+        router.withdraw(address(pairETHTINU), 10 ether, user);
+        vm.stopPrank();
+    }
+
+    function test_DepositETHAndSwap() external {
+        vm.startPrank(user);
+        vm.deal(user, 100 ether);
+        vault.approve(address(router), true);
+        router.depositETH{value: 10 ether}();
+
+        address[] memory path = new address[](2);
+        path[0] = address(WETH);
+        path[1] = address(tinu);
+        WETH.deposit{value: 10 ether}();
+        WETH.approve(address(UNISWAP_ROUTER), 10 ether);
+        UNISWAP_ROUTER.swapExactTokensForTokens(10000000, 0, path, address(this), block.timestamp+1);
+
+        router.withdraw(address(pairETHTINU), 10 ether, user);
+
         vm.stopPrank();
     }
 }
