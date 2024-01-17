@@ -28,19 +28,19 @@
     "deploy:token:mainnet": "forge script script/DeployToken.s.sol:DeployToken $MULTISIG --sig 'run(address)' --rpc-url https://mainnet.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ETHERSCAN",
     "deploy:token:sepolia": "forge script script/DeployToken.s.sol:DeployToken $MULTISIG --sig 'run(address)' --rpc-url https://sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ETHERSCAN",
     "deploy:token:goerli": "forge script script/DeployToken.s.sol:DeployToken $MULTISIG --sig 'run(address)' --rpc-url https://goerli.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ETHERSCAN",
-    "mint:token:goerli": "forge script script/MintToken.s.sol:MintToken $TO $AMOUNT --sig 'run(address,uint256)' --rpc-url https://goerli.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ETHERSCAN",
+    "mint:token:sepolia": "forge script script/MintToken.s.sol:MintToken $TO $AMOUNT --sig 'run(address,uint256)' --rpc-url https://sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ETHERSCAN",
 
 
-    "deploy:ticket:arbitrumGoerli": "forge script script/DeployTicket.s.sol:DeployTicket --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN",
-    "create:ticket:arbitrumGoerli": "forge script script/CreateTicket.s.sol:CreateTicket $TIMESTAMP --sig 'run(uint256)' --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
-    "mint:ticket:arbitrumGoerli": "forge script script/MintTicket.s.sol:MintTicket $TICKET $TO $AMOUNT --sig 'run(address,address,uint256)' --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
-    "deploy:collateral:arbitrumGoerli": "forge script script/DeployMintTestCollateral.s.sol:DeployMintTestCollateral $TO $AMOUNT --sig 'run(address,uint256)' --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN",
-    "deploy:vault:arbitrumGoerli": "forge script script/DeployVault.s.sol:DeployVault --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN",
-    "pricefeed:btc:arbitrumGoerli": "forge script script/SetBTCPriceFeed.s.sol:SetBTCPriceFeed --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN",
-    "pricefeed:admin:arbitrumGoerli": "forge script script/SetPriceFeedAdmin.s.sol:SetPriceFeedAdmin --rpc-url https://arbitrum-goerli.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
+    "deploy:ticket:arbitrumSepolia": "forge script script/DeployTicket.s.sol:DeployTicket --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN",
+    "create:ticket:arbitrumSepolia": "forge script script/CreateTicket.s.sol:CreateTicket $TIMESTAMP --sig 'run(uint256)' --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
+    "mint:ticket:arbitrumSepolia": "forge script script/MintTicket.s.sol:MintTicket $TICKET $TO $AMOUNT --sig 'run(address,address,uint256)' --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
+    "deploy:collateral:arbitrumSepolia": "forge script script/DeployMintTestCollateral.s.sol:DeployMintTestCollateral $TO $AMOUNT --sig 'run(address,uint256)' --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN --gas-estimate-multiplier 200",
+    "deploy:vault:arbitrumSepolia": "forge script script/DeployVault.s.sol:DeployVault --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN  --gas-estimate-multiplier 150",
+    "pricefeed:btc:arbitrumSepolia": "forge script script/SetBTCPriceFeed.s.sol:SetBTCPriceFeed --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN",
+    "pricefeed:admin:arbitrumSepolia": "forge script script/SetPriceFeedAdmin.s.sol:SetPriceFeedAdmin --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
 
 
-    "generate:arbitrumGoerli": "ts-node ./script/generateContracts.ts -- 421613",
+    "generate:arbitrumSepolia": "ts-node ./script/generateContracts.ts -- 421614",
 
 
     "lint": "pnpm lint:sol && pnpm prettier:check",
