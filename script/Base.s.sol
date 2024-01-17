@@ -35,7 +35,7 @@ abstract contract BaseScript is Script {
             (broadcaster,) = deriveRememberKey({ mnemonic: mnemonic, index: 0 });
         }
 
-        bridgedUN = 0xB6792B06f6Afd9E820699BCbA8B78Af49d817094;
+        bridgedUN = 0x4CEcd017a9bA4dAbDC3d35A042Ea16ace0325115;
     }
 
     modifier broadcast() {

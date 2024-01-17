@@ -25,6 +25,7 @@
 [etherscan]
   arbitrum_one = { key = "${API_KEY_ARBISCAN}" }
   arbitrum_goerli = { key = "${API_KEY_ARBISCAN}" }
+  arbitrum_sepolia = { key = "${API_KEY_ARBISCAN}" }
   bnb_smart_chain = { key = "${API_KEY_BSCSCAN}" }
   goerli = { key = "${API_KEY_ETHERSCAN}" }
   mainnet = { key = "${API_KEY_ETHERSCAN}" }
@@ -46,6 +47,7 @@
 [rpc_endpoints]
   arbitrum_one = "https://arbitrum-mainnet.infura.io/v3/${API_KEY_INFURA}"
   arbitrum_goerli = "https://arbitrum-goerli.infura.io/v3/${API_KEY_INFURA}"
+  arbitrum_sepolia = "https://arbitrum-sepolia.infura.io/v3/${API_KEY_INFURA}"
   avalanche = "https://avalanche-mainnet.infura.io/v3/${API_KEY_INFURA}"
   bnb_smart_chain = "https://bsc-dataseed.binance.org"
   gnosis_chain = "https://rpc.gnosischain.com"
