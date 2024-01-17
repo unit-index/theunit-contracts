@@ -3,16 +3,12 @@ pragma solidity ^0.8.21;
 
 import { console2 } from "forge-std/console2.sol";
 import { BaseSetup } from "./BaseSetup.t.sol";
-import { Farm } from "../src/core/Farm.sol";
 import { TinuToken } from "../src/core/TinuToken.sol";
 import { TicketFactory } from "../src/core/TicketFactory.sol";
-import { FarmRouter } from "../src/peripherals/FarmRouter.sol";
 import { IUniswapV2Factory } from "../src/test/IUniswapV2Factory.sol";
 import { IUniswapV2Router01 } from "../src/test/IUniswapV2Router01.sol";
 // import { IERC20 } from "../src/test/IERC20.sol";
-import { RouterV1 } from "../src/peripherals/RouterV1.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
 import "forge-std/console.sol"; // test
 
 contract UNTokenTest is BaseSetup {
@@ -38,8 +34,7 @@ contract UNTokenTest is BaseSetup {
 
         address ticket = ticketFactory.ticketAddresses( time);
 
-        uint256 unLockTime = ticketFactory.tickets(ticket);
-
+        // uint256 unLockTime = ticketFactory.tickets(ticket);
         // console.log(ticket, unLockTime);
         un.approve(address(ticketFactory), 10 ether);
         ticketFactory.lock(ticket, owner, 10 ether);
@@ -53,7 +48,6 @@ contract UNTokenTest is BaseSetup {
 
         IERC20(ticket).approve(address(ticketFactory), 10 ether);
         ticketFactory.unlock(ticket, 10 ether, owner);
-
 
         vm.stopPrank();
     }

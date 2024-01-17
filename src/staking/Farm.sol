@@ -186,18 +186,14 @@ contract Farm is Ownable {
         updatePool(userLockInfo.pid);
         
         uint256 _accCakePerShare = accCakePerShareArchive[_period];
-
         if (userLockInfo.amount > 0) {
             uint256 pending = userLockInfo.amount * userLockInfo.multiplier * 
                 _accCakePerShare / 1e12 - userLockInfo.rewardDebt;
-
             // Update user's reward debt before making any external calls
             userLockInfo.rewardDebt = userLockInfo.amount * userLockInfo.multiplier * _accCakePerShare / 1e12;
-
             if(pending > 0) {
                 IERC20(un).transfer(_to, pending);
             }
-
             emit Claim(
                 msg.sender,
                 _userUnlockIndex,
@@ -206,7 +202,6 @@ contract Farm is Ownable {
                 _to
             );
         }
-
     }
 
     function claimAll(uint256[] memory _userUnlockIndexs, uint256 _period,  address _to) public {

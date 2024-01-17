@@ -4,6 +4,7 @@ pragma solidity ^0.8.21;
 
 interface IPriceFeed {
     function description() external view returns (string memory);
+    function setAdmin(address _account, bool _isAdmin) external;
     function aggregator() external view returns (address);
     function latestAnswer() external view returns (int256);
     function latestRound() external view returns (uint80);

@@ -3,7 +3,7 @@ pragma solidity ^0.8.21;
 
 import { console2 } from "forge-std/console2.sol";
 import { BaseSetup } from "./BaseSetup.t.sol";
-import { Farm } from "../src/core/Farm.sol";
+import { Farm } from "../src/staking/Farm.sol";
 import { TinuToken } from "../src/core/TinuToken.sol";
 import { FarmRouter } from "../src/peripherals/FarmRouter.sol";
 import { IUniswapV2Factory } from "../src/test/IUniswapV2Factory.sol";

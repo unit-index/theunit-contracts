@@ -8,6 +8,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IVaultPriceFeed } from "../interfaces/IVaultPriceFeed.sol";
 import { IFlashLoan } from "../interfaces/IFlashLoan.sol";
 
+import "forge-std/console.sol"; // test
+
 contract Vault is IVault {
 
     event IncreaseCollateral (
@@ -201,8 +203,10 @@ contract Vault is IVault {
        if (_params.length > 0) IFlashLoan(_receiver).flashLoanCall(_from, _collateralToken, _collateralAmount, _params);
 
         bool yes = validateLiquidation(_from, _collateralToken, true); 
+       
         require(!yes, "Vault: Collateral amount out of range");
 
+ 
         emit DecreaseCollateral(
             _from, 
             vaultOwnerAccount[_from][_collateralToken].tinuDebt, 
@@ -243,14 +247,14 @@ contract Vault is IVault {
             _from, 
             vaultOwnerAccount[_from][_collateralToken].tinuDebt,
             _collateralToken, 
-            _amount, 
+            _amount,
             _getLiquidationPrice(_from, _collateralToken)
         );
         return true;
     }
 
     function flashLoan(
-        address _collateralToken, 
+        address _collateralToken,
         uint256 _amount, 
         address _receiver,
         bytes calldata _data
@@ -329,11 +333,14 @@ contract Vault is IVault {
         ITinuToken(tinu).burn(_balance);
         vaultOwnerAccount[_receiver][_collateralToken].tinuDebt = 
             vaultOwnerAccount[_receiver][_collateralToken].tinuDebt - _balance;
+        // if(tracker != address(0)) {
+        //     ITracker(tracker).trackerData(_collateralToken, _receiver);
+        // }
         emit DecreaseDebt(
             _receiver, 
             vaultOwnerAccount[_receiver][_collateralToken].tinuDebt,
             _collateralToken, 
-            _balance, 
+            _balance,
             _getLiquidationPrice(_receiver, _collateralToken)
         );
 
@@ -360,6 +367,11 @@ contract Vault is IVault {
         emit LiquidateCollateral(_account, _collateralToken, account.tokenAssets, account.tinuDebt, _feeTo);
 
         return true;
+    }
+
+    function transferToAuction(address _collateralToken, address _account) external {
+        bool yes = validateLiquidation(_account, _collateralToken, false);
+        require(yes, "Vault: no validateLiquidation");
     }
 
     function validateLiquidation(
