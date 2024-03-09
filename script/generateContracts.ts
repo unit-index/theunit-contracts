@@ -7,7 +7,7 @@ const getAbi = (type: string) =>
 const getBlob = (type: string, chainId: string) => 
     JSON.parse(fs.readFileSync(`${rootFolder}/broadcast/Deploy${type}.s.sol/${chainId}/run-latest.json`, "utf8"));
 
-const contracts = ['Vault'];
+const contracts = ['Ticket', 'Vault'];
 
 const frontendPath = path.join(__dirname, '../../theunit-frontend/crypto', 'contracts.json');
 const currentVersion = '0.0.1';
