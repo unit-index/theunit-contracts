@@ -17,8 +17,6 @@ abstract contract BaseScript is Script {
     /// @dev Used to derive the broadcaster's address if $ETH_FROM is not defined.
     string internal mnemonic;
 
-    address internal bridgedUN;
-
     /// @dev Initializes the transaction broadcaster like this:
     ///
     /// - If $ETH_FROM is defined, use it.
@@ -34,8 +32,6 @@ abstract contract BaseScript is Script {
             mnemonic = vm.envOr({ name: "MNEMONIC", defaultValue: TEST_MNEMONIC });
             (broadcaster,) = deriveRememberKey({ mnemonic: mnemonic, index: 0 });
         }
-
-        bridgedUN = 0x4CEcd017a9bA4dAbDC3d35A042Ea16ace0325115;
     }
 
     modifier broadcast() {
