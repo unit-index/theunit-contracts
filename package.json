@@ -35,9 +35,14 @@
     "create:ticket:arbitrumSepolia": "forge script script/CreateTicket.s.sol:CreateTicket $TIMESTAMP --sig 'run(uint256)' --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
     "mint:ticket:arbitrumSepolia": "forge script script/MintTicket.s.sol:MintTicket $TICKET $TO $AMOUNT --sig 'run(address,address,uint256)' --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
     "deploy:collateral:arbitrumSepolia": "forge script script/DeployMintTestCollateral.s.sol:DeployMintTestCollateral $TO $AMOUNT --sig 'run(address,uint256)' --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN --gas-estimate-multiplier 200",
+    "mint:collateral:arbitrumSepolia": "forge script script/MintTestCollateral.s.sol:MintTestCollateral $TO $AMOUNT --sig 'run(address,uint256)' --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN --gas-estimate-multiplier 200",
     "deploy:vault:arbitrumSepolia": "forge script script/DeployVault.s.sol:DeployVault --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN  --gas-estimate-multiplier 150",
     "pricefeed:btc:arbitrumSepolia": "forge script script/SetBTCPriceFeed.s.sol:SetBTCPriceFeed --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN",
     "pricefeed:admin:arbitrumSepolia": "forge script script/SetPriceFeedAdmin.s.sol:SetPriceFeedAdmin --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
+    "pricefeed:answer:arbitrumSepolia": "forge script script/SetPriceFeedPrice.s.sol:SetPriceFeedAnswer --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
+
+
+    "deploy:farm:arbitrumSepolia": "forge script script/DeployFarm.s.sol:DeployFarm --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN  --gas-estimate-multiplier 150",
 
 
     "generate:arbitrumSepolia": "ts-node ./script/generateContracts.ts -- 421614",
