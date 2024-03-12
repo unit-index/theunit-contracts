@@ -9,6 +9,7 @@ import { TinuToken } from "../src/core/TinuToken.sol";
 import { UnitPriceFeed } from "../src/oracle/UnitPriceFeed.sol";
 import { VaultPriceFeed } from "../src/core/VaultPriceFeed.sol";
 import { RouterV1 } from "../src/peripherals/RouterV1.sol";
+import { DutchAuction } from "../src/core/DutchAuction.sol";
 
 contract DeployVault is BaseScript {
 
@@ -21,7 +22,11 @@ contract DeployVault is BaseScript {
         
         TinuToken tinu = new TinuToken();
         VaultPriceFeed vaultPriceFeed = new VaultPriceFeed();
-        Vault vault = new Vault(address(tinu));
+
+
+        DutchAuction dutchAuction = new DutchAuction(1,1,1);
+        Vault vault = new Vault(address(tinu), address(dutchAuction));
+
         vault.setPriceFeed(address(vaultPriceFeed));
         tinu.setMinter(address(vault));
 
