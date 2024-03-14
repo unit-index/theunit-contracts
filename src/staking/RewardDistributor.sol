@@ -52,9 +52,6 @@ contract RewardDistributor is IRewardDistributor {
         admin = _admin;
     }
 
-    // function setRewardTracker(address _rewardTracker, bool isOk) external onlyGov  {
-    //     rewardTracker[_rewardTracker] = isOk;
-    // }
     // to help users who accidentally send their tokens to this contract
     function withdrawToken(address _token, address _account, uint256 _amount) external onlyGov {
         IERC20(_token).transfer(_account, _amount);
@@ -70,7 +67,7 @@ contract RewardDistributor is IRewardDistributor {
         rewardTokenInfo[_rewardTracker].tokensPerInterval = _amount;
         emit TokensPerIntervalChange(_amount);
     }
-
+    
     function pendingRewards(address _rewardTracker) public view override returns (uint256) {
         if (block.timestamp == rewardTokenInfo[_rewardTracker].lastDistributionTime) {
             return 0;

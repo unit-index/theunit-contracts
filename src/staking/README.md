@@ -16,6 +16,7 @@ Stake ETH, lockDay 有30天，90天，180天， 360天。
  function depositETH(uint8 lock) public; 
 ```
 
+_depositToken  为质押的token 
 ```
  function deposit(address _depositToken, uint256 _amount, uint8 _lockDay)
 ```
