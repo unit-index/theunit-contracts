@@ -22,13 +22,9 @@ contract FarmRouter2 is Ownable, IFlashLoan {
 
     address public UN;
 
-    address public uniswapRouter;
-
     address public UNISWAP_FACTORY;
 
     address public WETH;
-
-    address public farm;
 
     address public VAULT;
 
@@ -36,9 +32,28 @@ contract FarmRouter2 is Ownable, IFlashLoan {
     mapping (address => address) public uLps; // pair => ulp
     mapping (address => address) public pairs; //ulp => pair
 
+    // mapping (address => type2) name;
+
+    struct AddLP{
+        address pair; 
+        address tokenA; 
+        address tokenB; 
+        uint256 amountA;
+        uint256 amountB;
+        uint8 lockDay;
+        address account;
+    }
+
+    struct RemoveLP{
+        address pair;
+        address receiver;
+        uint256 lockIndex;
+        uint256 amount;
+    }
+
     struct FlashCallbackData{
-        bytes callData; // calldata
-        uint func; // addLiquidity 0 removeLiquidity 1
+        uint8 callType;
+        bytes callData; 
     }
 
     constructor(
@@ -62,69 +77,99 @@ contract FarmRouter2 is Ownable, IFlashLoan {
         IERC20(_pair).approve(_ulp, 2**256-1);
     }
 
-    function depositETH() public payable {
+    function depositETH(uint8 lock) public payable {
         require(msg.value > 0, "FarmRouter: value cannot be 0");
         IWETH(WETH).deposit{value: msg.value}();
         address _pair = UniswapV2Library.pairFor(UNISWAP_FACTORY, WETH, TINU);
         address _uLP = uLps[_pair];
-        _deposit(_uLP, WETH);
+        _deposit(_uLP, WETH, _pair, lock,  msg.sender);
     }
 
-    function deposit(address _depositToken, uint256 _amount) public {
+    function deposit(address _depositToken, uint256 _amount, uint8 _lockDay) public {
         IERC20(_depositToken).transferFrom(msg.sender, address(this), _amount);
-        address _pair = UniswapV2Library.pairFor(UNISWAP_FACTORY, WETH, TINU);
+        address _pair = UniswapV2Library.pairFor(UNISWAP_FACTORY, _depositToken, TINU);
         address _uLP = uLps[_pair];
-        _deposit(_uLP, _depositToken);
+        require(_uLP != address(0), "FarmRouter: can not pair!");
+        _deposit(_uLP, _depositToken, _pair, _lockDay, msg.sender);
     }
+
+    function relock(address _collateralToken, uint256 _lockIndex, uint8 _lockDay) public {
+
+    }
+
+    // amount: ulp amount
+    function withdraw(address _uLP, uint256 _lockIndex, address _receiver) public {
+        address _pair = pairs[_uLP];
+        require(_pair != address(0), "FarmRouter2: collateralToken error!");
+        (uint256 _amount, , ) = IRewardTracker(_uLP).locked(msg.sender, _lockIndex);
+        RemoveLP memory _data = RemoveLP(_pair, _receiver, _lockIndex, _amount);
+        FlashCallbackData memory fcData = FlashCallbackData(1, abi.encode(_data));
+        IVault(VAULT).decreaseCollateralFrom(msg.sender, _uLP, address(this), _amount, abi.encode(fcData));
+    }
+
     /*
-        _collateralToken is LP token
+        _collateralToken is ULP token
         _depositToken is assets
     */
-    function _deposit(address _collateralToken, address _depositToken) internal {
+    function _deposit(address _collateralToken, address _depositToken, address _pair, uint8 _lockDay, address _account) internal {
         uint256 depositAmounts = IERC20(_depositToken).balanceOf(address(this));
         (uint reserveA, uint reserveB) = UniswapV2Library.getReserves(UNISWAP_FACTORY, _depositToken, TINU);
         uint needTinuAmounts = UniswapV2Library.quote(depositAmounts, reserveA, reserveB);
-        address _pair = UniswapV2Library.pairFor(UNISWAP_FACTORY, _depositToken, TINU);
-        // console.log("_collateralToken:", _collateralToken);
-        bytes memory _data = abi.encodeWithSignature(
-            "addLiquidity(address,address,address,uint256,uint256)",
-            _pair,
-            _depositToken,
-            TINU,
-            depositAmounts, 
-            needTinuAmounts
-        );
 
-        FlashCallbackData memory fcData = FlashCallbackData(_data, 0);
+        AddLP memory _data = AddLP(_pair, _depositToken, TINU, depositAmounts, needTinuAmounts, _lockDay, _account );
+        FlashCallbackData memory fcData = FlashCallbackData(0, abi.encode(_data));
         IVault(VAULT).flashLoanFrom(msg.sender, _collateralToken, needTinuAmounts, address(this), abi.encode(fcData));
     }
 
     function flashLoanCall(address _sender, address _collateralToken, uint256 _amount, bytes calldata _data) external override {
         require(msg.sender == VAULT, "FarmRouter2: no");
         FlashCallbackData memory fcData = abi.decode(_data, (FlashCallbackData));
-        if(fcData.func == 0) { 
-            (bool success, ) = address(this).call(fcData.callData); // add
-            require(success, "FarmRouter2: addLiquidity error!");
-            IVault(VAULT).increaseCollateral(_collateralToken, _sender);  
-        }else if(fcData.func == 1) {
-            address _pair = pairs[_collateralToken];
-            IRewardTracker(_collateralToken).unstake(_pair, _amount);
-            uint256 lpBalane = IERC20(_pair).balanceOf(address(this));
-            // console.log("unstank", lpBalane);
+        if(fcData.callType == 0) { 
+            AddLP memory addLP = abi.decode(fcData.callData, (AddLP));
+            uint256 liquidity = addLiquidity(addLP.pair, addLP.tokenA, addLP.tokenB, addLP.amountA, addLP.amountB);
+            address _uLP = uLps[addLP.pair];
+            IRewardTracker(_uLP).stakeForAccount(address(this), addLP.account, addLP.pair, liquidity, addLP.lockDay);
+
+            IERC20(_uLP).transferFrom(addLP.account, VAULT, liquidity);
+            IVault(VAULT).increaseCollateral(_collateralToken, addLP.account);  
+
+        }else if(fcData.callType == 1) {
+            // address _pair = pairs[_collateralToken];
+            RemoveLP memory removeLP = abi.decode(fcData.callData, (RemoveLP));
+    
+            IERC20(_collateralToken).transfer(_sender, removeLP.amount);
+            IRewardTracker(_collateralToken).unstakeForAccount(_sender, removeLP.pair, removeLP.lockIndex , address(this)); // 从
+ 
+            uint256 lpBalane = IERC20(removeLP.pair).balanceOf(address(this));
             require(lpBalane >= _amount,"FarmRouter2: unstake error");
-            (bool success, ) = address(this).call(fcData.callData); // rm
-            require(success, "FarmRouter2: remove Liquidity error!");
+
+            (uint amount0, uint amount1) = removeLiquidity(removeLP.pair, removeLP.amount);
             uint256 tinuBalance = IERC20(TINU).balanceOf(address(this));
             IERC20(TINU).transfer(VAULT, tinuBalance);
             IVault(VAULT).decreaseDebt(_collateralToken, _sender);
-            uint256 tinuBalance2 = IERC20(TINU).balanceOf(address(this));
-            // console.log("tinuBalance:",tinuBalance2);
-            (uint256 tokenAssets, uint256 debt) = IVault(VAULT).vaultOwnerAccount(msg.sender, _collateralToken);
-            // console.log("tinuBalance:",tokenAssets, debt);
+            address token0 = IUniswapPair(removeLP.pair).token0();
+            address token1 = IUniswapPair(removeLP.pair).token1();
+
+            // TODO: deposit把欠多少TINU存下来，然后在每次 remove 的时候 按照这个还就行了。
+            // uint256 outAmount = getAmountOut(_collateralToken, _sender, removeLP.amount);
+            if(token0 == TINU) {
+                  IERC20(token1).transfer(_sender, amount1);
+            }else {
+                  IERC20(token0).transfer(_sender, amount0);
+            }
+
+
+            // uint256 tinuBalance2 = IERC20(TINU).balanceOf(address(this));
+            // (uint256 tokenAssets, uint256 debt) = IVault(VAULT).vaultOwnerAccount(msg.sender, _collateralToken);
         }
     }
+    // 获取多少头寸
+    function getAmountOut(address _collateralToken, address _account, uint256 _amount ) public view returns(uint256) {
+         (uint256 tokenAssets, uint256 debt) = IVault(VAULT).vaultOwnerAccount(_account, _collateralToken);
+        return  _amount * 1e18 / tokenAssets * debt / 1e18;
+    }
 
-    function addLiquidity(address pair, address tokenA, address tokenB, uint256 amountA, uint256 amountB) public returns(uint) {
+    function addLiquidity(address pair, address tokenA, address tokenB, uint256 amountA, uint256 amountB) private returns(uint) {
         uint256 _amountA = IERC20(tokenA).balanceOf(address(this));
         uint256 _amountB = IERC20(tokenB).balanceOf(address(this));
         require(amountA == _amountA, "FarmRouter2: INSUFFICIENT amountA");
@@ -132,81 +177,21 @@ contract FarmRouter2 is Ownable, IFlashLoan {
         IERC20(tokenA).transfer(pair, _amountA);
         IERC20(tokenB).transfer(pair, _amountB);
         uint liquidity = IUniswapPair(pair).mint(address(this));
-        address _uLP = uLps[pair];
-        IRewardTracker(_uLP).stake(pair, liquidity);
-        IERC20(_uLP).transfer(VAULT, liquidity);
         return liquidity;
     }
     
-    function removeLiquidity(address _pair, address _receiver, uint256 _amount) public returns(uint, uint){
+    function removeLiquidity(address _pair, uint256 _amount) private returns(uint, uint){
         uint256 lpBalane = IERC20(_pair).balanceOf(address(this));
         require(lpBalane >= _amount, "FarmRouter2: INSUFFICIENT amount");
         IERC20(_pair).transfer(_pair, _amount);
         (uint amount0, uint amount1) = IUniswapPair(_pair).burn(address(this));
         return (amount0, amount1);
-        // address token0 = IUniswapPair(_pair).token0();
-        // address token1 = IUniswapPair(_pair).token1();
-        // (uint reserve0, uint reserve1,) = IUniswapV2Pair(_pair).getReserves();
-        // console.log("removeLiquidity getReserves:", reserve0, reserve1);
-        // if(amount0 > _debt) {
-        //     sellToTinu(_pair, amount0 - _debt, reserve0, reserve1);
-        // }
-
-        // (uint256 tinuAmount, uint256 tokenAmount) =  (amount0, amount1);
-        // (address tokenA, address tokenB)  = (token0, token1);
-        // (uint reserveA, uint reserveB) =  ( reserve0,  reserve1);
-        // if( token0 != TINU) {
-        //     ( tinuAmount,  tokenAmount) =   ( amount1, amount0);
-        //     ( tokenA,  tokenB)          =   ( token1, token0);
-        //     ( reserveA,  reserveB)      =   ( reserve1,  reserve0);
-        // }
- 
-        // if(tinuAmount > _debt) {
-        //     uint256 delta = tinuAmount - _debt;
-        //     uint256 amountOut = UniswapV2Library.getAmountOut(delta, reserveA, reserveB);
-        //      IERC20(TINU).transfer(pair, delta);
-        //      (uint256 amount0Out, uint256 amount1Out) = token0 == TINU ? (uint256(0), amountOut) : (amountOut, uint256(0));
-        //      IUniswapPair(pair).swap(amount0Out, amount1Out, address(this), new bytes(0));
-        // }else if(tinuAmount < _debt) {
-        //     uint256 delta = _debt - tinuAmount;
-        //     IERC20(tokenB).transfer(pair, delta);
-        //     uint256 amountIn = UniswapV2Library.getAmountIn(delta, reserveB, reserveA);
-        //     (uint256 amount0Out, uint256 amount1Out) = token0 == TINU ? (amountIn, uint256(0)) : ( uint256(0), amountIn);
-        //      IUniswapPair(pair).swap(amount0Out, amount1Out, address(this), new bytes(0));
-        // }
-
-        // uint256 tinuBalance = IERC20(TINU).balanceOf(address(this));
-        // require(tinuBalance >= _debt, "no");
-
-        // IERC20(TINU).transfer(VAULT, _debt);
-        // IVault(VAULT).decreaseDebt(pair, _receiver);
-
-        // uint256 tokenBbalance = IERC20(token1).balanceOf(address(this));
-        // IERC20(TINU).transfer(_receiver, tokenBbalance);
     }
 
     function sellToTinu(address pair, uint256 _delta, uint256 _reserveA, uint256 _reserveB) internal {
         uint256 amountOut = UniswapV2Library.getAmountOut(_delta, _reserveA, _reserveB);
         IERC20(TINU).transfer(pair, _delta);
-        // (uint256 amount0Out, uint256 amount1Out) = token0 == TINU ? (uint256(0), amountOut) : (amountOut, uint256(0));
-         (uint256 amount0Out, uint256 amount1Out) = (uint256(0), amountOut);
+        (uint256 amount0Out, uint256 amount1Out) = (uint256(0), amountOut);
         IUniswapPair(pair).swap(amount0Out, amount1Out, address(this), new bytes(0));
-    }
-
-    // function sellTinu(address pair,  uint256 _delta, uint256 _reserveA, uint256 _reserveB) internal {
-    //      IERC20(tokenB).transfer(pair, _delta);
-    //      uint256 amountIn = UniswapV2Library.getAmountIn(_delta, _reserveB, _reserveA);
-    //       (uint256 amount0Out, uint256 amount1Out) = (_amountOut, uint256(0));
-    // }
-
-    // _collateralToken: ulp address 
-    // amount: ulp amount
-    function withdraw(address _collateralToken, uint256 _amount, address _to) public {
-        address _pair = pairs[_collateralToken];
-        require(_pair != address(0), "FarmRouter2: collateralToken error!");
-         bytes memory _data = abi.encodeWithSignature("removeLiquidity(address,address,uint256)", _pair, msg.sender, _amount);
-        FlashCallbackData memory fcData = FlashCallbackData(_data, 1);
-        // console.log(msg.sender, _collateralToken, address(this), _amount);
-        IVault(VAULT).decreaseCollateralFrom(msg.sender, _collateralToken, address(this), _amount, abi.encode(fcData));
     }
 }

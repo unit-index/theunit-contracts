@@ -8,7 +8,7 @@ import { TicketFactory } from "../src/core/TicketFactory.sol";
 contract DeployTicket is BaseScript {
     function run() public broadcast returns (bool) {
 
-        TicketFactory factory = new TicketFactory(address(bridgedUN));
+        TicketFactory factory = new TicketFactory(vm.envAddress("BRIDGED_UN"));
         console2.log("Unit Ticket Factory deployed at: ", address(factory));
 
         return true;

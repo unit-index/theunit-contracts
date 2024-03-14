@@ -6,8 +6,8 @@ interface IRewardTracker {
     function depositBalances(address _account, address _depositToken) external view returns (uint256);
     function stakedAmounts(address _account) external view returns (uint256);
     function updateRewards() external;
-    function stake(address _depositToken, uint256 _amount) external;
-    function stakeForAccount(address _fundingAccount, address _account, address _depositToken, uint256 _amount) external;
+    function stake(address _depositToken, uint256 _amount, uint8 _lockDay) external;
+    function stakeForAccount(address _fundingAccount, address _account, address _depositToken, uint256 _amount, uint8 _lockDay) external;
     function unstake(address _depositToken, uint256 _amount) external;
     function unstakeForAccount(address _account, address _depositToken, uint256 _amount, address _receiver) external;
     function tokensPerInterval() external view returns (uint256);
@@ -16,4 +16,8 @@ interface IRewardTracker {
     function claimable(address _account) external view returns (uint256);
     function averageStakedAmounts(address _account) external view returns (uint256);
     function cumulativeRewards(address _account) external view returns (uint256);
+
+    function locked(address _account, uint256 _lockIndex) external view returns(uint256, uint256, uint256);
+        
+    
 }

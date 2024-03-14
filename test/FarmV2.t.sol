@@ -42,12 +42,12 @@ contract FarmTest is BaseSetup {
         super.setUp();
 
         vm.startPrank(owner);
-        // uint8 periodCount = 12;
-        // uint256[] memory cakesPerPeriod = new uint256[](periodCount);
-        // cakesPerPeriod[0] = amount;
-        // for (uint8 i=1; i<periodCount; i++) {
-        //     cakesPerPeriod[i] = amount / (i * 2);
-        // }
+        uint8 periodCount = 12;
+        uint256[] memory cakesPerPeriod = new uint256[](periodCount);
+        cakesPerPeriod[0] = amount;
+        for (uint8 i=1; i<periodCount; i++) {
+            cakesPerPeriod[i] = amount / (i * 2);
+        }
         // farm = new Farm(
         //     owner,
         //     172800, 
@@ -60,21 +60,30 @@ contract FarmTest is BaseSetup {
         address pair1 = UNISWAP_FACTORY.createPair(address(un), address(tinu));
 
         pairETHTINU = pair0;
+
         // farm.add(0, IERC20(pair0));
         // farm.add(1, IERC20(pair1));
         
-        // console.log(pair0);
+        console.log(pair0);
         priceFeed = new UnitPriceFeed();
         uint256 price = 1100000 * 1e18;
         ulp = new RewardTracker("UNIT LP", "uLP");
         priceFeed.setLatestAnswer(int256(price));
 
+
         vaultPriceFeed.setTokenConfig(address(ulp), address(priceFeed), 18);
 
-        RewardDistributor rd = new RewardDistributor(address(un), address(ulp));
+        RewardDistributor rd = new RewardDistributor(address(un));
+        
         ulp.initialize(pair0, address(rd));
-        rd.updateLastDistributionTime();
-        rd.setTokensPerInterval(1e18);
+        un.mint(address(rd), 1000 ether);
+
+        rd.updateLastDistributionTime(address(ulp));
+        rd.setTokensPerInterval(address(ulp), 100000);
+
+
+        // rd.setTokensPerInterval(1e18);
+
         farmRouter2 = new FarmRouter2(
             owner,
             address(tinu),
@@ -85,6 +94,8 @@ contract FarmTest is BaseSetup {
         );
 
         farmRouter2.addUlp(pair0, address(ulp));
+
+        ulp.setHandler(address(farmRouter2), true);
         
         IVault(vault).setFreeFlashLoanWhitelist(address(farmRouter2), true);
 
@@ -117,24 +128,32 @@ contract FarmTest is BaseSetup {
     }
 
     function test_DepositETH() external {
-
         vm.startPrank(user);
         vm.deal(user, 100 ether);
         vault.approve(address(farmRouter2), true);
-        farmRouter2.depositETH{value: 10 ether}();
+        farmRouter2.depositETH{value: 10 ether}(30);
 
-        (uint256 asset, uint256 debt) = vault.vaultOwnerAccount(user, address(ulp));
-        // console.log(asset, debt);
+        uint256 tokenAmount = ulp.claimable(user);
+        console.log("tokenAmount:", tokenAmount);
 
-        farmRouter2.withdraw(address(ulp), asset, user);
+        // (uint256 asset, uint256 debt) = vault.vaultOwnerAccount(user, address(ulp));
+
+        vm.warp(block.timestamp + 30 * 24 * 3600);
+        farmRouter2.withdraw(address(ulp), 0, user);
 
         (uint256 asset2, uint256 debt2) = vault.vaultOwnerAccount(user, address(ulp));
-        // console.log(asset2, debt2);
         assertEq(debt2, 0);
         assertEq(asset2, 0);
 
+
+
         vm.stopPrank();
     }
+
+    function test_Deposit() external {
+        
+    }
+
 
     // function test_DepositETHAndSwap() external {
     //     vm.startPrank(user);

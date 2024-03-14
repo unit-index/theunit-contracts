@@ -80,6 +80,8 @@ contract Vault is IVault {
     uint256 public minimumCollateral = 100 * 1e18 ; // default 100 UNIT
 
     uint256 public flashLoanFee = 999; // 999 = 0.1%
+
+    address public auction; // Auction contract address
     
     struct Account {
         uint256 tokenAssets;
@@ -94,7 +96,7 @@ contract Vault is IVault {
 
     mapping (address => uint256 ) public liquidationRatio;
 
-    mapping (address => bool) freeFlashLoanWhitelist;
+    mapping (address => bool) public freeFlashLoanWhitelist;
     
     uint private unlocked = 1;
     
@@ -109,9 +111,10 @@ contract Vault is IVault {
         _;
     }
 
-    constructor(address _tinu) {
+    constructor(address _tinu, address _auction) {
         gov = msg.sender;
         tinu = _tinu;
+        auction = _auction;
     }
 
     function setGov(address _gov) public onlyGov{
@@ -199,14 +202,11 @@ contract Vault is IVault {
             vaultPoolAccount[_collateralToken].tokenAssets - _collateralAmount;
 
        IERC20(_collateralToken).transfer(_receiver, _collateralAmount);
-
        if (_params.length > 0) IFlashLoan(_receiver).flashLoanCall(_from, _collateralToken, _collateralAmount, _params);
-
         bool yes = validateLiquidation(_from, _collateralToken, true); 
        
         require(!yes, "Vault: Collateral amount out of range");
 
- 
         emit DecreaseCollateral(
             _from, 
             vaultOwnerAccount[_from][_collateralToken].tinuDebt, 
@@ -347,31 +347,55 @@ contract Vault is IVault {
         return true;
     }
 
-    function liquidation(address _collateralToken, address _account, address _feeTo) external override returns (bool) {
+    // function liquidation(address _collateralToken, address _account, address _feeTo) external override returns (bool) {
+    //     bool yes = validateLiquidation(_account, _collateralToken, false);
+    //     require(yes, "Vault: no validateLiquidation");
+    //     uint256 _balance = IERC20(tinu).balanceOf(address(this));
+    //     Account storage account = vaultOwnerAccount[_account][_collateralToken];
+    //     require(_balance >= account.tinuDebt, "Vault: insufficient unit token");
+    //     ITinuToken(tinu).burn(account.tinuDebt);
+    //     // 1%, liquidationTreasuryFee default 990
+    //     uint256 _treasuryFee =  (account.tokenAssets * 1000 - account.tokenAssets * liquidationTreasuryFee) / 1000;
+    //     uint256 _returnCollateral = account.tokenAssets - _treasuryFee;
+    //     account.tinuDebt = 0;
+    //     account.tokenAssets = 0;
+    //     IERC20(_collateralToken).transfer(treasury, _treasuryFee);
+    //     IERC20(_collateralToken).transfer(_feeTo, _returnCollateral);
+    //     emit LiquidateCollateral(_account, _collateralToken, account.tokenAssets, account.tinuDebt, _feeTo);
+    //     return true;
+    // }
+    
+    // trasnfer to auction contract 
+    function liquidation(address _collateralToken, address _account, address _feeTo) external  override returns (bool)  {
         bool yes = validateLiquidation(_account, _collateralToken, false);
         require(yes, "Vault: no validateLiquidation");
         uint256 _balance = IERC20(tinu).balanceOf(address(this));
         Account storage account = vaultOwnerAccount[_account][_collateralToken];
         require(_balance >= account.tinuDebt, "Vault: insufficient unit token");
         ITinuToken(tinu).burn(account.tinuDebt);
-
-        // 1%, liquidationTreasuryFee default 990
+        
         uint256 _treasuryFee =  (account.tokenAssets * 1000 - account.tokenAssets * liquidationTreasuryFee) / 1000;
         uint256 _returnCollateral = account.tokenAssets - _treasuryFee;
+        
         account.tinuDebt = 0;
         account.tokenAssets = 0;
-
         IERC20(_collateralToken).transfer(treasury, _treasuryFee);
         IERC20(_collateralToken).transfer(_feeTo, _returnCollateral);
 
         emit LiquidateCollateral(_account, _collateralToken, account.tokenAssets, account.tinuDebt, _feeTo);
-
         return true;
     }
 
-    function transferToAuction(address _collateralToken, address _account) external {
-        bool yes = validateLiquidation(_account, _collateralToken, false);
-        require(yes, "Vault: no validateLiquidation");
+    function toAuction(address _collateralToken, address _account) external {
+        // require(msg.sender == auction, "no");
+        // bool yes = validateLiquidation(_account, _collateralToken, false);
+        // Account storage account = vaultOwnerAccount[msg.sender][_collateralToken];
+        // Account storage newAccount = vaultOwnerAccount[_newAccount][_collateralToken];
+        // require(newAccount.tokenAssets == 0, "Vault: newAccount not new");     
+        // newAccount.tokenAssets = newAccount.tokenAssets + account.tokenAssets;
+        // newAccount.tinuDebt = newAccount.tinuDebt + account.tinuDebt;
+        // account.tokenAssets = 0;
+        // account.tinuDebt = 0;
     }
 
     function validateLiquidation(
@@ -414,13 +438,10 @@ contract Vault is IVault {
         Account storage account = vaultOwnerAccount[msg.sender][_collateralToken];
         Account storage newAccount = vaultOwnerAccount[_newAccount][_collateralToken];
         require(newAccount.tokenAssets == 0, "Vault: newAccount not new");     
-        
         newAccount.tokenAssets = newAccount.tokenAssets + account.tokenAssets;
         newAccount.tinuDebt = newAccount.tinuDebt + account.tinuDebt;
-
         account.tokenAssets = 0;
         account.tinuDebt = 0;
-    
         emit CollateralOwnerTrasnfer(msg.sender, _newAccount, _collateralToken, account.tokenAssets, account.tinuDebt);
     }
 }

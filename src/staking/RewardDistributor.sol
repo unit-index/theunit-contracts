@@ -5,18 +5,27 @@ pragma solidity ^0.8.21;
 import "../interfaces/IRewardDistributor.sol";
 import "../interfaces/IRewardTracker.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "forge-std/console.sol"; // test
 
 contract RewardDistributor is IRewardDistributor {
 
     address public override rewardToken;
-    uint256 public override tokensPerInterval;
-    uint256 public lastDistributionTime;
-    address public rewardTracker;
+    // uint256 public override tokensPerInterval;
+    // uint256 public lastDistributionTime;
+    // address public rewardTracker;
 
     address public admin;
     address public gov;
 
-    event Distribute(uint256 amount);
+
+    struct Reward {
+        uint256 tokensPerInterval;
+        uint256 lastDistributionTime;
+    }
+
+    mapping (address => Reward ) public override rewardTokenInfo;
+
+    event Distribute(address rewardTracker, uint256 amount);
     event TokensPerIntervalChange(uint256 amount);
 
     modifier onlyAdmin() {
@@ -24,9 +33,8 @@ contract RewardDistributor is IRewardDistributor {
         _;
     }
 
-    constructor(address _rewardToken, address _rewardTracker) {
+    constructor(address _rewardToken) {
         rewardToken = _rewardToken;
-        rewardTracker = _rewardTracker;
         admin = msg.sender;
         gov = msg.sender;
     }
@@ -44,48 +52,50 @@ contract RewardDistributor is IRewardDistributor {
         admin = _admin;
     }
 
+    // function setRewardTracker(address _rewardTracker, bool isOk) external onlyGov  {
+    //     rewardTracker[_rewardTracker] = isOk;
+    // }
     // to help users who accidentally send their tokens to this contract
     function withdrawToken(address _token, address _account, uint256 _amount) external onlyGov {
-        // IERC20(_token).safeTransfer(_account, _amount);
+        IERC20(_token).transfer(_account, _amount);
     }
 
-    function updateLastDistributionTime() external onlyAdmin {
-        lastDistributionTime = block.timestamp;
+    function updateLastDistributionTime(address _rewardTracker) external onlyAdmin {
+        rewardTokenInfo[_rewardTracker].lastDistributionTime =  block.timestamp;
     }
 
-    function setTokensPerInterval(uint256 _amount) external onlyAdmin {
-        require(lastDistributionTime != 0, "RewardDistributor: invalid lastDistributionTime");
-        IRewardTracker(rewardTracker).updateRewards();
-        tokensPerInterval = _amount;
+    function setTokensPerInterval(address _rewardTracker,uint256 _amount) external onlyAdmin {
+        require(rewardTokenInfo[_rewardTracker].lastDistributionTime != 0, "RewardDistributor: invalid lastDistributionTime");
+        IRewardTracker(_rewardTracker).updateRewards();
+        rewardTokenInfo[_rewardTracker].tokensPerInterval = _amount;
         emit TokensPerIntervalChange(_amount);
     }
 
-    function pendingRewards() public view override returns (uint256) {
-        if (block.timestamp == lastDistributionTime) {
+    function pendingRewards(address _rewardTracker) public view override returns (uint256) {
+        if (block.timestamp == rewardTokenInfo[_rewardTracker].lastDistributionTime) {
             return 0;
         }
 
-        uint256 timeDiff = block.timestamp - lastDistributionTime;
-        return tokensPerInterval * timeDiff;
+        uint256 timeDiff = block.timestamp - rewardTokenInfo[_rewardTracker].lastDistributionTime;
+        return rewardTokenInfo[_rewardTracker].tokensPerInterval * timeDiff;
     }
 
+
     function distribute() external override returns (uint256) {
-        // require(msg.sender == rewardTracker, "RewardDistributor: invalid msg.sender");
-        // uint256 amount = pendingRewards();
-        // if (amount == 0) { return 0; }
+        require(rewardTokenInfo[msg.sender].lastDistributionTime > 0, "RewardDistributor: invalid msg.sender");
+        uint256 amount = pendingRewards(msg.sender);
+        if (amount == 0) { return 0; }
 
-        // lastDistributionTime = block.timestamp;
+        rewardTokenInfo[msg.sender].lastDistributionTime = block.timestamp;
 
-        // uint256 balance = IERC20(rewardToken).balanceOf(address(this));
-        // if (amount > balance) { amount = balance; }
+        uint256 balance = IERC20(rewardToken).balanceOf(address(this));
+        if (amount > balance) { amount = balance; }
 
-        // // IERC20(rewardToken).safeTransfer(msg.sender, amount);
-        // safeTransfer(rewardToken, msg.sender, amount);
+        safeTransfer(rewardToken, msg.sender, amount);
 
-        // emit Distribute(amount);
+        emit Distribute(msg.sender, amount);
 
-        // return amount;
-        return 0;
+        return amount;
     }
 
     function safeTransfer(address _token, address _to, uint256 _amount) internal {

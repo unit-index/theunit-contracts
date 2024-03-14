@@ -10,6 +10,7 @@ import { TinuToken } from "../src/core/TinuToken.sol";
 import { UN } from "../src/core/UN.sol";
 import { UnitPriceFeed } from "../src/oracle/UnitPriceFeed.sol";
 import { VaultPriceFeed } from "../src/core/VaultPriceFeed.sol";
+import { DutchAuction } from "../src/core/DutchAuction.sol";
 
 contract BaseSetup is PRBTest, StdCheats {
 
@@ -37,7 +38,9 @@ contract BaseSetup is PRBTest, StdCheats {
         priceFeed = new UnitPriceFeed();
         priceFeed.setLatestAnswer(int256(price));
         vaultPriceFeed = new VaultPriceFeed();
-        vault = new Vault(address(tinu));
+
+        DutchAuction dutchAuction = new DutchAuction(1,1,1);
+        vault = new Vault(address(tinu), address(dutchAuction));
         vault.setPriceFeed(address(vaultPriceFeed));
         tinu.setMinter(address(vault));
         vaultPriceFeed.setTokenConfig(address(WETH), address(priceFeed), 18);

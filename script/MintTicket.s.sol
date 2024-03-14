@@ -12,7 +12,7 @@ contract MintTicket is BaseScript {
         address ticketFactoryAddress = _getContractAddress("Ticket");
         ITicketFactory ticketFactory = ITicketFactory(ticketFactoryAddress);
 
-        UN un = UN(bridgedUN);
+        UN un = UN(vm.envAddress("BRIDGED_UN"));
         un.approve(ticketFactoryAddress, amount * 1e18);
         ticketFactory.lock(ticket, to, amount * 1e18);
         return true;

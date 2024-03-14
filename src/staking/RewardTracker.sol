@@ -5,7 +5,7 @@ pragma solidity ^0.8.21;
 import "../interfaces/IRewardDistributor.sol";
 import "../interfaces/IRewardTracker.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
- import "forge-std/console.sol"; // test
+import "forge-std/console.sol"; // test
 
 contract RewardTracker is IERC20, IRewardTracker {
 
@@ -27,6 +27,9 @@ contract RewardTracker is IERC20, IRewardTracker {
     mapping (address => uint256) public totalDepositSupply;
 
     uint256 public override totalSupply;
+
+    uint256 public totalStakedAmounts;
+
     mapping (address => uint256) public balances;
     mapping (address => mapping (address => uint256)) public allowances;
 
@@ -37,13 +40,21 @@ contract RewardTracker is IERC20, IRewardTracker {
     mapping (address => uint256) public override cumulativeRewards;
     mapping (address => uint256) public override averageStakedAmounts;
 
-    bool public inPrivateTransferMode;
-    bool public inPrivateStakingMode;
-    bool public inPrivateClaimingMode;
-
     address public gov;
 
     mapping (address => bool) public isHandler;
+
+    mapping (uint256 => uint256) public lockTime;
+
+    struct Lock{
+        uint256 amount;
+        uint256 unlockTime;
+        uint256 point;
+    }
+
+    mapping (address => mapping (uint256 => Lock) ) public override locked; 
+
+    mapping (address => uint256 ) public lockedIndex;
 
     event Claim(address receiver, uint256 amount);
 
@@ -51,6 +62,11 @@ contract RewardTracker is IERC20, IRewardTracker {
         name = _name;
         symbol = _symbol;
         gov = msg.sender;
+
+        lockTime[30] = 1;  // 30 days => 1x
+        lockTime[90] = 2;
+        lockTime[180] = 4;
+        lockTime[360] = 8;
     }
 
     modifier onlyGov() {
@@ -66,17 +82,12 @@ contract RewardTracker is IERC20, IRewardTracker {
         admin = _admin;
     }
 
-
     function initialize(
         address _depositToken,
         address _distributor
     ) external onlyGov {
         require(!isInitialized, "RewardTracker: already initialized");
         isInitialized = true;
-        // for (uint256 i = 0; i < _depositTokens.length; i++) {
-        //     address depositToken = _depositTokens[i];
-        //     isDepositToken[depositToken] = true;
-        // }
         isDepositToken[_depositToken]  = true;
         distributor = _distributor;
     }
@@ -85,49 +96,39 @@ contract RewardTracker is IERC20, IRewardTracker {
         isDepositToken[_depositToken] = _isDepositToken;
     }
 
-    function setInPrivateTransferMode(bool _inPrivateTransferMode) external onlyGov {
-        inPrivateTransferMode = _inPrivateTransferMode;
-    }
-
-    function setInPrivateStakingMode(bool _inPrivateStakingMode) external onlyGov {
-        inPrivateStakingMode = _inPrivateStakingMode;
-    }
-
-    function setInPrivateClaimingMode(bool _inPrivateClaimingMode) external onlyGov {
-        inPrivateClaimingMode = _inPrivateClaimingMode;
-    }
-
     function setHandler(address _handler, bool _isActive) external onlyGov {
         isHandler[_handler] = _isActive;
     }
 
     // to help users who accidentally send their tokens to this contract
     function withdrawToken(address _token, address _account, uint256 _amount) external onlyGov {
-        // IERC20(_token).safeTransfer(_account, _amount);
+        IERC20(_token).transfer(_account, _amount);
     }
 
     function balanceOf(address _account) external view override returns (uint256) {
         return balances[_account];
     }
 
-    function stake(address _depositToken, uint256 _amount) external override  {
-        // if (inPrivateStakingMode) { revert("RewardTracker: action not enabled"); }
-        _stake(msg.sender, msg.sender, _depositToken, _amount);
+    function relock( uint256 _lockIndex, uint8 _lockDay) external {
+         _relock(msg.sender, _lockIndex, _lockDay);
+    }
+    
+    function stake(address _depositToken, uint256 _amount, uint8 _lockTime) external override  {
+        _stake(msg.sender, msg.sender, _depositToken, _amount, _lockTime);
     }
 
-    function stakeForAccount(address _fundingAccount, address _account, address _depositToken, uint256 _amount) external override  {
+    function stakeForAccount(address _fundingAccount, address _account, address _depositToken, uint256 _amount, uint8 _lockDay) external override  {
         _validateHandler();
-        _stake(_fundingAccount, _account, _depositToken, _amount);
+        _stake(_fundingAccount, _account, _depositToken, _amount, _lockDay);
     }
 
-    function unstake(address _depositToken, uint256 _amount) external override {
-        if (inPrivateStakingMode) { revert("RewardTracker: action not enabled"); }
-        _unstake(msg.sender, _depositToken, _amount, msg.sender);
+    function unstake(address _depositToken, uint256 _lockIndex) external override {
+        _unstake(msg.sender, _depositToken, _lockIndex, msg.sender);
     }
 
-    function unstakeForAccount(address _account, address _depositToken, uint256 _amount, address _receiver) external override  {
+    function unstakeForAccount(address _account, address _depositToken, uint256 _lockIndex, address _receiver) external override  {
         _validateHandler();
-        _unstake(_account, _depositToken, _amount, _receiver);
+        _unstake(_account, _depositToken, _lockIndex, _receiver);
     }
 
     function transfer(address _recipient, uint256 _amount) external override returns (bool) {
@@ -157,7 +158,8 @@ contract RewardTracker is IERC20, IRewardTracker {
     }
 
     function tokensPerInterval() external override view returns (uint256) {
-        return IRewardDistributor(distributor).tokensPerInterval();
+        (uint256 _tokensPerInterval, ) =  IRewardDistributor(distributor).rewardTokenInfo(address(this));
+        return _tokensPerInterval;
     }
 
     function updateRewards() external override  {
@@ -165,7 +167,6 @@ contract RewardTracker is IERC20, IRewardTracker {
     }
 
     function claim(address _receiver) external override returns (uint256) {
-        if (inPrivateClaimingMode) { revert("RewardTracker: action not enabled"); }
         return _claim(msg.sender, _receiver);
     }
 
@@ -180,7 +181,7 @@ contract RewardTracker is IERC20, IRewardTracker {
             return claimableReward[_account];
         }
         uint256 supply = totalSupply;
-        uint256 pendingRewards = IRewardDistributor(distributor).pendingRewards() * PRECISION;
+        uint256 pendingRewards = IRewardDistributor(distributor).pendingRewards(address(this)) * PRECISION;
         uint256 nextCumulativeRewardPerToken = cumulativeRewardPerToken + (pendingRewards / supply);
         // return claimableReward[_account].add(
             // stakedAmount.mul(nextCumulativeRewardPerToken.sub(previousCumulatedRewardPerToken[_account])).div(PRECISION));
@@ -193,15 +194,13 @@ contract RewardTracker is IERC20, IRewardTracker {
 
     function _claim(address _account, address _receiver) private returns (uint256) {
         _updateRewards(_account);
-
         uint256 tokenAmount = claimableReward[_account];
         claimableReward[_account] = 0;
 
         if (tokenAmount > 0) {
-            // IERC20(rewardToken()).safeTransfer(_receiver, tokenAmount);
+            IERC20(rewardToken()).transfer(_receiver, tokenAmount);
             emit Claim(_account, tokenAmount);
         }
-
         return tokenAmount;
     }
 
@@ -210,13 +209,13 @@ contract RewardTracker is IERC20, IRewardTracker {
 
         totalSupply = totalSupply + _amount;
         balances[_account] = balances[_account] + _amount;
-
+        console.log("_mint:", _account, balances[_account], _amount);
         emit Transfer(address(0), _account, _amount);
     }
 
     function _burn(address _account, uint256 _amount) internal {
         require(_account != address(0), "RewardTracker: burn from the zero address");
-
+          console.log("_burn:", _account, balances[_account] , _amount);
         balances[_account] = balances[_account] - _amount;
         totalSupply = totalSupply - _amount;
 
@@ -226,8 +225,6 @@ contract RewardTracker is IERC20, IRewardTracker {
     function _transfer(address _sender, address _recipient, uint256 _amount) private {
         require(_sender != address(0), "RewardTracker: transfer from the zero address");
         require(_recipient != address(0), "RewardTracker: transfer to the zero address");
-
-        if (inPrivateTransferMode) { _validateHandler(); }
 
         balances[_sender] = balances[_sender] - _amount;
         balances[_recipient] = balances[_recipient] = _amount;
@@ -248,47 +245,93 @@ contract RewardTracker is IERC20, IRewardTracker {
         require(isHandler[msg.sender], "RewardTracker: forbidden");
     }
 
-    function _stake(address _fundingAccount, address _account, address _depositToken, uint256 _amount) private {
-        require(_amount > 0, "RewardTracker: invalid _amount");
-        require(isDepositToken[_depositToken], "RewardTracker: invalid _depositToken");
+    function _relock(address _account, uint256 _lockIndex, uint8 _lockDay) private {
+        uint256 newPoint = lockTime[_lockDay];
+        require(newPoint > 0, "RewardTracker: invalid LockDay");
 
-        IERC20(_depositToken).transferFrom(_fundingAccount, address(this), _amount);
-        _updateRewards(_account);
+        Lock memory lock = locked[_account][_lockIndex];
 
-        stakedAmounts[_account] = stakedAmounts[_account] + _amount;
-        depositBalances[_account][_depositToken] = depositBalances[_account][_depositToken] + _amount;
-        totalDepositSupply[_depositToken] = totalDepositSupply[_depositToken] + _amount;
+        require(newPoint >= lock.point, "RewardTracker: relock only add time");
 
-        _mint(_account, _amount); // mint stake token
+        uint256 _pointAmount = lock.amount * lock.point;
+
+        uint256 _newPointAmount = lock.amount * newPoint;
+
+        stakedAmounts[_account] =  stakedAmounts[_account] - _pointAmount;
+        totalStakedAmounts =  totalStakedAmounts - _pointAmount; 
+
+        stakedAmounts[_account] = stakedAmounts[_account] + _newPointAmount;
+        totalStakedAmounts =  totalStakedAmounts + _newPointAmount;
+
+        uint256 _unlockTime = block.timestamp + (uint256(_lockDay) * 24 * 3600);
+        locked[_account][_lockIndex] = Lock(lock.amount , _unlockTime, _newPointAmount);
     }
 
-    function _unstake(address _account, address _depositToken, uint256 _amount, address _receiver) private {
+    function _stake(address _fundingAccount, address _account, address _depositToken, uint256 _amount, uint8 _lockDay) private {
         require(_amount > 0, "RewardTracker: invalid _amount");
         require(isDepositToken[_depositToken], "RewardTracker: invalid _depositToken");
+        uint256 point = lockTime[_lockDay];
+        require(point > 0, "RewardTracker: invalid LockDay");
+
+        IERC20(_depositToken).transferFrom(_fundingAccount, address(this), _amount);  // Warp in
+        _updateRewards(_account);
+
+        uint256 _lockIndex = lockedIndex[_account];
+        uint256 _unlockTime = block.timestamp + (uint256(_lockDay) * 24 * 3600);
+
+        locked[_account][_lockIndex] = Lock(_amount, _unlockTime, point);
+        lockedIndex[_account] += 1;
+
+        uint256 _pointAmount = _amount * point;
+
+        stakedAmounts[_account] = stakedAmounts[_account] + _pointAmount; // stake了多少，包括倍数
+        totalStakedAmounts =  totalStakedAmounts + _pointAmount;         // 一共staked 了多少 包括倍数
+
+        depositBalances[_account][_depositToken] = depositBalances[_account][_depositToken] + _amount; //  实际充值了多少
+        totalDepositSupply[_depositToken] = totalDepositSupply[_depositToken] + _amount; //  一共实际充值了多少
+        _mint(_account, _amount); // mint stake token ULP
+    }
+
+    function _unstake(address _account, address _depositToken, uint256 _lockIndex, address _receiver ) private {
+        require(isDepositToken[_depositToken], "RewardTracker: invalid _depositToken");
+        // uint256 point = lockTime[_lockDay];
+        // require(point > 0, "RewardTracker: invalid LockDay");
+         Lock memory lock = locked[_account][_lockIndex];
+        require(lock.amount > 0, "RewardTracker: invalid _amount");
+        require(lock.unlockTime <= block.timestamp, "RewardTracker: invalid _lockIndex");
 
         _updateRewards(_account);
 
-        uint256 stakedAmount = stakedAmounts[_account];
-        require(stakedAmounts[_account] >= _amount, "RewardTracker: _amount exceeds stakedAmount");
+        uint256 _pointAmount = lock.amount * lock.point;
 
-        stakedAmounts[_account] = stakedAmount - _amount;
+        uint256 stakedAmount = stakedAmounts[_account];
+        require(stakedAmounts[_account] >= _pointAmount, "RewardTracker: _pointAmount exceeds stakedAmount");
+    
+        stakedAmounts[_account] = stakedAmount - _pointAmount;
+            // console.log("_unstake:", totalStakedAmounts, _pointAmount);
+        totalStakedAmounts =  totalStakedAmounts - _pointAmount; 
 
         uint256 depositBalance = depositBalances[_account][_depositToken];
-        require(depositBalance >= _amount, "RewardTracker: _amount exceeds depositBalance");
-        depositBalances[_account][_depositToken] = depositBalance - _amount;
-        totalDepositSupply[_depositToken] = totalDepositSupply[_depositToken] - _amount;
-        _burn(_account, _amount); // burn stake token
+        require(depositBalance >= lock.amount, "RewardTracker: _amount exceeds depositBalance");
+
+        depositBalances[_account][_depositToken] = depositBalance - lock.amount;
+
+        totalDepositSupply[_depositToken] = totalDepositSupply[_depositToken] - lock.amount;
+
+        _burn(_account, lock.amount); // burn stake token
         
-        IERC20(_depositToken).transfer(_receiver, _amount);
+        IERC20(_depositToken).transfer(_receiver, lock.amount);
     }
 
     function _updateRewards(address _account) private {
         uint256 blockReward = IRewardDistributor(distributor).distribute();
 
-        uint256 supply = totalSupply;
+        // uint256 supply = totalSupply;
+        uint256 supply = totalStakedAmounts;
+
         uint256 _cumulativeRewardPerToken = cumulativeRewardPerToken;
         if (supply > 0 && blockReward > 0) {
-            _cumulativeRewardPerToken = _cumulativeRewardPerToken + (blockReward * PRECISION/ supply);
+            _cumulativeRewardPerToken = _cumulativeRewardPerToken + (blockReward * PRECISION / supply);
             cumulativeRewardPerToken = _cumulativeRewardPerToken;
         }
 
