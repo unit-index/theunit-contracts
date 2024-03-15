@@ -20,3 +20,4 @@ _depositToken  为质押的token
 ```
  function deposit(address _depositToken, uint256 _amount, uint8 _lockDay)
 ```
+

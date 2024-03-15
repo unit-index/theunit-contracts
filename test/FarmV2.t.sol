@@ -48,13 +48,6 @@ contract FarmTest is BaseSetup {
         for (uint8 i=1; i<periodCount; i++) {
             cakesPerPeriod[i] = amount / (i * 2);
         }
-        // farm = new Farm(
-        //     owner,
-        //     172800, 
-        //     cakesPerPeriod, 
-        //     block.number,
-        //     address(un)
-        // );
       
         address pair0 = UNISWAP_FACTORY.createPair(address(WETH), address(tinu));
         address pair1 = UNISWAP_FACTORY.createPair(address(un), address(tinu));
@@ -64,7 +57,7 @@ contract FarmTest is BaseSetup {
         // farm.add(0, IERC20(pair0));
         // farm.add(1, IERC20(pair1));
         
-        console.log(pair0);
+        // console.log(pair0);
         priceFeed = new UnitPriceFeed();
         uint256 price = 1100000 * 1e18;
         ulp = new RewardTracker("UNIT LP", "uLP");
@@ -80,10 +73,6 @@ contract FarmTest is BaseSetup {
 
         rd.updateLastDistributionTime(address(ulp));
         rd.setTokensPerInterval(address(ulp), 100000);
-        
-
-
-        // rd.setTokensPerInterval(1e18);
 
         farmRouter2 = new FarmRouter2(
             owner,
