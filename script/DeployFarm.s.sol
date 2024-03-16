@@ -6,6 +6,8 @@ import { BaseScript } from "./Base.s.sol";
 import { FarmRouter2 } from "../src/peripherals/FarmRouter2.sol";
 import { RewardDistributor } from "../src/staking/RewardDistributor.sol";
 import { RewardTracker } from "../src/staking/RewardTracker.sol";
+import { UnitPriceFeed } from "../src/oracle/UnitPriceFeed.sol";
+import { IVaultPriceFeed } from "../src/interfaces/IVaultPriceFeed.sol";
 import { IUniswapV2Factory } from "../src/test/IUniswapV2Factory.sol";
 
 contract DeployFarm is BaseScript {
@@ -22,9 +24,10 @@ contract DeployFarm is BaseScript {
         RewardDistributor rd = new RewardDistributor(UN); //  RewardDistributor  全局只需要一个即可
 
         RewardTracker ulp = new RewardTracker("UNIT warp LP WETH/TINU", "ULP");
-        address priceFeed = new UnitPriceFeed(); //  为ULP创建一个priceFeed
+        UnitPriceFeed priceFeed = new UnitPriceFeed(); //  为ULP创建一个priceFeed
         uint256 price = 1100000 * 1e18;
         priceFeed.setLatestAnswer(int256(price));
+        IVaultPriceFeed vaultPriceFeed = IVaultPriceFeed(0xc52A1F4Bb3ee1b92520B1b77f832E680b9858E8f);
         vaultPriceFeed.setTokenConfig(address(ulp), address(priceFeed), 18);
 
         address pair0 = IUniswapV2Factory(UNISWAPFACTORY).createPair(TINU, WETH);
