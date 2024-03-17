@@ -5,7 +5,7 @@ pragma solidity ^0.8.21;
 import "../interfaces/IRewardDistributor.sol";
 import "../interfaces/IRewardTracker.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "forge-std/console.sol"; // test
+// import "forge-std/console.sol"; // test
 
 contract RewardTracker is IERC20, IRewardTracker {
 
@@ -209,13 +209,12 @@ contract RewardTracker is IERC20, IRewardTracker {
 
         totalSupply = totalSupply + _amount;
         balances[_account] = balances[_account] + _amount;
-        console.log("_mint:", _account, balances[_account], _amount);
+
         emit Transfer(address(0), _account, _amount);
     }
 
     function _burn(address _account, uint256 _amount) internal {
         require(_account != address(0), "RewardTracker: burn from the zero address");
-          console.log("_burn:", _account, balances[_account] , _amount);
         balances[_account] = balances[_account] - _amount;
         totalSupply = totalSupply - _amount;
 
@@ -226,8 +225,11 @@ contract RewardTracker is IERC20, IRewardTracker {
         require(_sender != address(0), "RewardTracker: transfer from the zero address");
         require(_recipient != address(0), "RewardTracker: transfer to the zero address");
 
+      
         balances[_sender] = balances[_sender] - _amount;
-        balances[_recipient] = balances[_recipient] = _amount;
+        // console.log("_transfer: befer",   balances[_recipient]);
+        balances[_recipient] = balances[_recipient] + _amount;
+        // console.log("_transfer: afet",   balances[_recipient]);
 
         emit Transfer(_sender, _recipient,_amount);
     }
@@ -308,7 +310,7 @@ contract RewardTracker is IERC20, IRewardTracker {
         require(stakedAmounts[_account] >= _pointAmount, "RewardTracker: _pointAmount exceeds stakedAmount");
     
         stakedAmounts[_account] = stakedAmount - _pointAmount;
-            // console.log("_unstake:", totalStakedAmounts, _pointAmount);
+
         totalStakedAmounts =  totalStakedAmounts - _pointAmount; 
 
         uint256 depositBalance = depositBalances[_account][_depositToken];
