@@ -227,7 +227,7 @@ contract RewardTracker is IERC20, IRewardTracker {
         require(_recipient != address(0), "RewardTracker: transfer to the zero address");
 
         balances[_sender] = balances[_sender] - _amount;
-        balances[_recipient] = balances[_recipient] = _amount;
+        balances[_recipient] = balances[_recipient] + _amount;
 
         emit Transfer(_sender, _recipient,_amount);
     }
