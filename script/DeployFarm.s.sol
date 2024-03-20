@@ -23,7 +23,7 @@ contract DeployFarm is BaseScript {
 
         RewardDistributor rd = new RewardDistributor(UN); //  RewardDistributor  全局只需要一个即可
 
-        RewardTracker ulp = new RewardTracker("UNIT warp LP WETH/TINU", "ULP");
+        RewardTracker ulp = new RewardTracker("UNIT wrap LP WETH/TINU", "ULP");
         UnitPriceFeed priceFeed = new UnitPriceFeed(); //  为ULP创建一个priceFeed
         uint256 price = 1100000 * 1e18;
         priceFeed.setLatestAnswer(int256(price));

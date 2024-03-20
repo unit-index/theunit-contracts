@@ -77,6 +77,14 @@ contract FarmRouter2 is Ownable, IFlashLoan {
         IERC20(_pair).approve(_ulp, 2**256-1);
     }
 
+    function compound(address _ulp, address _account, uint8 _lockDay) public {
+        require( IRewardTracker(_ulp).claimable(_account) > 0, "FarmRouter: claimable cannot be 0");
+        IRewardTracker(_ulp).claimForAccount(_account, address(this));
+        address _unTinuPair = UniswapV2Library.pairFor(UNISWAP_FACTORY, UN, TINU);
+        address _unUlp = uLps[_unTinuPair];
+        _deposit(_unUlp, UN, _unTinuPair, _lockDay, msg.sender);
+    }
+
     function depositETH(uint8 lock) public payable {
         require(msg.value > 0, "FarmRouter: value cannot be 0");
         IWETH(WETH).deposit{value: msg.value}();
@@ -91,10 +99,6 @@ contract FarmRouter2 is Ownable, IFlashLoan {
         address _uLP = uLps[_pair];
         require(_uLP != address(0), "FarmRouter: can not pair!");
         _deposit(_uLP, _depositToken, _pair, _lockDay, msg.sender);
-    }
-
-    function relock(address _collateralToken, uint256 _lockIndex, uint8 _lockDay) public {
-
     }
 
     // amount: ulp amount
@@ -130,7 +134,9 @@ contract FarmRouter2 is Ownable, IFlashLoan {
             address _uLP = uLps[addLP.pair];
             IRewardTracker(_uLP).stakeForAccount(address(this), addLP.account, addLP.pair, liquidity, addLP.lockDay);
 
+            uint256 balance0 =  IERC20(_uLP).balanceOf(VAULT);
             IERC20(_uLP).transferFrom(addLP.account, VAULT, liquidity);
+            uint256 balance1 =  IERC20(_uLP).balanceOf(VAULT);
             IVault(VAULT).increaseCollateral(_collateralToken, addLP.account);  
 
         } else if(fcData.callType == 1) {
@@ -157,7 +163,6 @@ contract FarmRouter2 is Ownable, IFlashLoan {
             }else {
                   IERC20(token0).transfer(_sender, amount0);
             }
-
 
             // uint256 tinuBalance2 = IERC20(TINU).balanceOf(address(this));
             // (uint256 tokenAssets, uint256 debt) = IVault(VAULT).vaultOwnerAccount(msg.sender, _collateralToken);
