@@ -77,10 +77,11 @@ contract FarmRouter2 is Ownable, IFlashLoan {
         IERC20(_pair).approve(_ulp, 2**256-1);
     }
 
-    function compound(address _ulp, address _unUlp, address _account, uint8 _lockDay) public {
+    function compound(address _ulp, address _account, uint8 _lockDay) public {
         require( IRewardTracker(_ulp).claimable(_account) > 0, "FarmRouter: claimable cannot be 0");
         IRewardTracker(_ulp).claimForAccount(_account, address(this));
         address _unTinuPair = UniswapV2Library.pairFor(UNISWAP_FACTORY, UN, TINU);
+        address _unUlp = uLps[_unTinuPair];
         _deposit(_unUlp, UN, _unTinuPair, _lockDay, msg.sender);
     }
 
