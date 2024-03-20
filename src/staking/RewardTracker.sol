@@ -180,11 +180,9 @@ contract RewardTracker is IERC20, IRewardTracker {
         if (stakedAmount == 0) {
             return claimableReward[_account];
         }
-        uint256 supply = totalSupply;
+        uint256 supply = totalStakedAmounts;
         uint256 pendingRewards = IRewardDistributor(distributor).pendingRewards(address(this)) * PRECISION;
         uint256 nextCumulativeRewardPerToken = cumulativeRewardPerToken + (pendingRewards / supply);
-        // return claimableReward[_account].add(
-            // stakedAmount.mul(nextCumulativeRewardPerToken.sub(previousCumulatedRewardPerToken[_account])).div(PRECISION));
         return claimableReward[_account] + (stakedAmount *  (nextCumulativeRewardPerToken - previousCumulatedRewardPerToken[_account]) / PRECISION);
     }
 
@@ -224,22 +222,15 @@ contract RewardTracker is IERC20, IRewardTracker {
     function _transfer(address _sender, address _recipient, uint256 _amount) private {
         require(_sender != address(0), "RewardTracker: transfer from the zero address");
         require(_recipient != address(0), "RewardTracker: transfer to the zero address");
-
-      
         balances[_sender] = balances[_sender] - _amount;
-        // console.log("_transfer: befer",   balances[_recipient]);
         balances[_recipient] = balances[_recipient] + _amount;
-        // console.log("_transfer: afet",   balances[_recipient]);
-
         emit Transfer(_sender, _recipient,_amount);
     }
 
     function _approve(address _owner, address _spender, uint256 _amount) private {
         require(_owner != address(0), "RewardTracker: approve from the zero address");
         require(_spender != address(0), "RewardTracker: approve to the zero address");
-
         allowances[_owner][_spender] = _amount;
-
         emit Approval(_owner, _spender, _amount);
     }
 
