@@ -6,8 +6,8 @@ import { IRewardDistributor } from "../src/interfaces/IRewardDistributor.sol";
 
 contract SetRewardsPerSec is BaseScript {
     function run() public broadcast returns (bool) {
-        IRewardDistributor rd = IRewardDistributor(0x83E392F54b0C170F96142bFD422Fc86b786f5A06);
-        rd.setTokensPerInterval(0xACe60BbE9c5a2aa53842384072aeA433D251d69E, 100000000000000000);
+        IRewardDistributor rd = IRewardDistributor(0xC758C15c3373680CCfc5808D9F86CEE465c52849);
+        rd.setTokensPerInterval(0x1dA0dcF724B4e44A3718f66702F3137Aec51aDe8, 100000000000000000);
         return true;
     }
 }

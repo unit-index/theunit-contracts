@@ -8,13 +8,13 @@ import { RewardDistributor } from "../src/staking/RewardDistributor.sol";
 import { RewardTracker } from "../src/staking/RewardTracker.sol";
 import { UnitPriceFeed } from "../src/oracle/UnitPriceFeed.sol";
 import { IVaultPriceFeed } from "../src/interfaces/IVaultPriceFeed.sol";
+import { IVault } from "../src/interfaces/IVault.sol";
+import { IERC20 } from "../src/test/IERC20.sol";
 import { IUniswapV2Factory } from "../src/test/IUniswapV2Factory.sol";
 
 contract DeployFarm is BaseScript {
     function run() public broadcast returns (bool) {
 
-        address TINU = 0x00f254763e5e1711f755933CEB52927374e7712F;
-        address VAULT = 0x90ACBC0cBd2c2A2F3b91DAECA104721D6A166361;
         address UNISWAPFACTORY = 0xD729EEbe443C12417d4c9661556357d3F9Fb4036;
         address UN =  vm.envAddress("BRIDGED_UN");
         address WETH =  vm.envAddress("WETH_ARBITRUM_SEPOLIA");
@@ -29,21 +29,24 @@ contract DeployFarm is BaseScript {
         priceFeed.setLatestAnswer(int256(price));
         IVaultPriceFeed vaultPriceFeed = IVaultPriceFeed(0xc52A1F4Bb3ee1b92520B1b77f832E680b9858E8f);
         vaultPriceFeed.setTokenConfig(address(ulp), address(priceFeed), 18);
+        IVault vault = IVault(0x90ACBC0cBd2c2A2F3b91DAECA104721D6A166361);
 
         address pair0 = 0x4a93a46c20FB29a71BBfca7a7Eb6224665602570;
-        // address pair1 = IUniswapV2Factory(UNISWAPFACTORY).createPair(TINU, UN);
 
         ulp.initialize(pair0, address(rd));
 
         rd.updateLastDistributionTime(address(ulp));
-        rd.setTokensPerInterval(address(ulp), 100000000000); // 设置 每秒奖励这么多UN
+        rd.setTokensPerInterval(address(ulp), 0.1 ether); // 设置 每秒奖励这么多UN
+
+        IERC20 unToken = IERC20(UN);
+        unToken.transfer(address(rd), 2000000 ether);
 
         FarmRouter2 farm = new FarmRouter2(
             vm.envAddress("DEPLOYER"),
-            TINU,
+            0x00f254763e5e1711f755933CEB52927374e7712F,
             vm.envAddress("BRIDGED_UN"),
             vm.envAddress("WETH_ARBITRUM_SEPOLIA"),
-            VAULT,
+            0x90ACBC0cBd2c2A2F3b91DAECA104721D6A166361,
             vm.envAddress("UNISWAP_FARM")
         );
 
@@ -51,6 +54,9 @@ contract DeployFarm is BaseScript {
         ulp.setHandler(address(farm), true);
         
         console2.log("FarmRouter2 deployed at:", address(farm));
+
+        vault.setFreeFlashLoanWhitelist(address(farm), true);
+
         return true;
     }
 }
