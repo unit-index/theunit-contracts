@@ -138,7 +138,7 @@ contract FarmRouter2 is Ownable, IFlashLoan {
             uint256 balance1 =  IERC20(_uLP).balanceOf(VAULT);
             IVault(VAULT).increaseCollateral(_collateralToken, addLP.account);  
 
-        }else if(fcData.callType == 1) {
+        } else if(fcData.callType == 1) {
             // address _pair = pairs[_collateralToken];
             RemoveLP memory removeLP = abi.decode(fcData.callData, (RemoveLP));
     

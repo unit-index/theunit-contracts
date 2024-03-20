@@ -30,7 +30,7 @@ contract DeployFarm is BaseScript {
         IVaultPriceFeed vaultPriceFeed = IVaultPriceFeed(0xc52A1F4Bb3ee1b92520B1b77f832E680b9858E8f);
         vaultPriceFeed.setTokenConfig(address(ulp), address(priceFeed), 18);
 
-        address pair0 = IUniswapV2Factory(UNISWAPFACTORY).createPair(TINU, WETH);
+        address pair0 = 0x4a93a46c20FB29a71BBfca7a7Eb6224665602570;
         // address pair1 = IUniswapV2Factory(UNISWAPFACTORY).createPair(TINU, UN);
 
         ulp.initialize(pair0, address(rd));
