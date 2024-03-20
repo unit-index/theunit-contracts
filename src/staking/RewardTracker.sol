@@ -180,7 +180,7 @@ contract RewardTracker is IERC20, IRewardTracker {
         if (stakedAmount == 0) {
             return claimableReward[_account];
         }
-        uint256 supply = totalSupply;
+        uint256 supply = totalStakedAmounts;
         uint256 pendingRewards = IRewardDistributor(distributor).pendingRewards(address(this)) * PRECISION;
         uint256 nextCumulativeRewardPerToken = cumulativeRewardPerToken + (pendingRewards / supply);
         // return claimableReward[_account].add(

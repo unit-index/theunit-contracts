@@ -41,6 +41,7 @@
     "pricefeed:admin:arbitrumSepolia": "forge script script/SetPriceFeedAdmin.s.sol:SetPriceFeedAdmin --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
     "pricefeed:answer:arbitrumSepolia": "forge script script/SetPriceFeedPrice.s.sol:SetPriceFeedAnswer --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
     "whitelist:arbitrumSepolia": "forge script script/Whitelist.s.sol:SetWhitelist --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
+    "set:rewardPerSec:arbitrumSepolia": "forge script script/SetRewardsPerSec.s.sol:SetRewardsPerSec --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --etherscan-api-key $API_KEY_ARBISCAN",
 
 
     "deploy:farm:arbitrumSepolia": "forge script script/DeployFarm.s.sol:DeployFarm --rpc-url https://arbitrum-sepolia.infura.io/v3/$API_KEY_INFURA --broadcast --verify --etherscan-api-key $API_KEY_ARBISCAN  --gas-estimate-multiplier 150",
