@@ -270,7 +270,8 @@ contract RewardTracker is IERC20, IRewardTracker {
         _updateRewards(_account);
 
         uint256 _lockIndex = lockedIndex[_account];
-        uint256 _unlockTime = block.timestamp + (uint256(_lockDay) * 24 * 3600);
+        // TODO - change back to * 24 * 3600
+        uint256 _unlockTime = block.timestamp + (uint256(_lockDay) * 2);
 
         locked[_account][_lockIndex] = Lock(_amount, _unlockTime, point);
         lockedIndex[_account] += 1;

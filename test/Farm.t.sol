@@ -42,12 +42,12 @@ contract FarmTest2 is BaseSetup {
     //     vm.stopPrank();
     // }
 
-    function test_depositETH() public {
+    function test_withdraw() public {
         vm.startPrank(0xC4cD7F3F5B282d40840E1C451EC93FFAE61514f9);
         IVault vault = IVault(0x90ACBC0cBd2c2A2F3b91DAECA104721D6A166361);
-        vault.approve(0xcac9bd169eEA4334326439963975C8323DFe8894, true);
-        IFarm farm = IFarm(0x31Bc5031705087D532682f49A399801CE01761e6);
-        farm.depositETH{value: 0.01 ether}(30);
+        vault.approve(0xF00eFdd86EF66daAfe900d043EaBcc568D37f952, true);
+        IFarm farm = IFarm(0xF00eFdd86EF66daAfe900d043EaBcc568D37f952);
+        farm.withdraw(0x539E573e62B568B4d9f43b29F479D7AAfBbCe74a, 0, 0xC4cD7F3F5B282d40840E1C451EC93FFAE61514f9);
         vm.stopPrank();
     }
 }
