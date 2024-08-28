@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
-import { console2 } from "forge-std/console2.sol";
+// import { console2 } from "forge-std/console2.sol";
 
 interface IMedian{
      function read() external view returns (uint256);
@@ -8,6 +8,8 @@ interface IMedian{
 contract UnitAlgorithm {
 
     address public median;
+
+    address public gov;
 
     mapping (address => bool) public orcl;
 
@@ -19,19 +21,25 @@ contract UnitAlgorithm {
         uint256 updateTime;
     }
 
-    mapping (uint256 => address[]) public tokensPerMonth;
+    mapping (uint256 => string[]) public tokensPerMonth;
 
-    mapping (uint256 => mapping ( address => MarketInfo)) public tokenPerMonthMarketInfo;
+    mapping (uint256 => mapping ( string => MarketInfo)) public tokenPerMonthMarketInfo;
 
-    constructor(address _median){
-        median = _median;
+    modifier onlyGov{
+        require(msg.sender == gov, "only gov!");
+        _;
     }
 
-    function setOrcl(address _account, bool _a) public {
+    constructor(address _median, address _gov){
+        median = _median;
+        gov = _gov;
+    }
+
+    function setOrcl(address _account, bool _a) public onlyGov {
         orcl[_account] = _a;
     }
 
-    function updateTokens(uint256 _month, address[] calldata _token) public {  // only gov
+    function updateTokens(uint256 _month, string[] calldata _token) public onlyGov {  // only gov
         tokensPerMonth[_month] = _token;
     }
 
@@ -46,8 +54,8 @@ contract UnitAlgorithm {
         For example, pre-writing can be done before the last day of the month at 23:59:59.
         On the first day of the next month at 00:00:00, the pre-writing can take effect.
     */
-    function updateMarketInfo(uint256 _month, address _token, uint256[] calldata _lastMCP, uint256[] calldata _lastMMC, uint8[] calldata v, bytes32[] calldata r, bytes32[] calldata s) public {
-        MarketInfo storage marketInfo =  tokenPerMonthMarketInfo[_month][_token];
+    function updateMarketInfo(uint256 _month, string calldata _token, uint256[] calldata _lastMCP, uint256[] calldata _lastMMC, uint8[] calldata v, bytes32[] calldata r, bytes32[] calldata s) public {
+        MarketInfo storage marketInfo = tokenPerMonthMarketInfo[_month][_token];
 
         require(_lastMCP.length == _lastMMC.length, "length not eq!");
         require(_month >= block.timestamp, "time out!");
@@ -58,12 +66,11 @@ contract UnitAlgorithm {
             marketInfo.lastMonthMarketCap = _lastMMC[i];
             marketInfo.updateTime = block.timestamp;
         }
-
-        lastMonthUnitPrice = IMedian(median).read();
+        // lastMonthUnitPrice = IMedian(median).read();
     }
 
     function totalMarketCap(uint256 _month) public view returns(uint256) {
-        address[] memory _tokens = tokensPerMonth[_month];
+        string[] memory _tokens = tokensPerMonth[_month];
         uint256 _totalMarketCap = 0;
         for(uint i = 0 ; i < _tokens.length; i++) {
             MarketInfo memory marketInfo = tokenPerMonthMarketInfo[_month][_tokens[i]];
@@ -74,7 +81,7 @@ contract UnitAlgorithm {
     // test
     function calculate(uint256 _month, uint256[] calldata _price) public view  returns(uint256) {
         uint256 _count = 0;
-        address[] memory _tokens = tokensPerMonth[_month];
+        string[] memory _tokens = tokensPerMonth[_month];
 
         for(uint i = 0; i< _tokens.length; i++) {
             MarketInfo memory  marketInfo = tokenPerMonthMarketInfo[_month][_tokens[i]];
